@@ -4,6 +4,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { PtyManager } from './pty/PtyManager'
 import { ConfigManager } from './config/ConfigManager'
+import { AiKeyStore } from './ai/AiKeyStore'
+import { AiManager } from './ai/AiManager'
 import { registerHandlers } from './ipc/handlers'
 
 const ptyManager = new PtyManager()
@@ -39,7 +41,9 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.idea-terminal')
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
 
-  registerHandlers(ptyManager, configManager)
+  const aiKeyStore = new AiKeyStore()
+  const aiManager = new AiManager()
+  registerHandlers(ptyManager, configManager, aiKeyStore, aiManager)
   createWindow()
 
   app.on('activate', () => {

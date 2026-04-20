@@ -1,4 +1,6 @@
 // src/renderer/src/types/api.ts
+import type { AppConfig, AiAgentConfig } from '../../../shared/types'
+
 export interface TerminalAPI {
   // 终端生命周期
   create: (options: { id: string; cwd: string }) => Promise<{ pid: number }>
@@ -14,8 +16,29 @@ export interface TerminalAPI {
   getHomedir: () => Promise<string>
 
   // 配置
-  loadConfig: () => Promise<import('../../../shared/types').AppConfig>
-  saveConfig: (config: import('../../../shared/types').AppConfig) => Promise<void>
+  loadConfig: () => Promise<AppConfig>
+  saveConfig: (config: AppConfig) => Promise<void>
+
+  // AI Agent 管理
+  saveAiAgent: (
+    agent: Omit<AiAgentConfig, 'apiKey' | 'createdAt' | 'updatedAt'> & {
+      apiKey: string
+      id?: string
+    }
+  ) => Promise<{ success: boolean }>
+  deleteAiAgent: (id: string) => Promise<void>
+
+  // AI 流式对话
+  sendAiMessage: (
+    requestId: string,
+    agentId: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    terminalContext?: string
+  ) => void
+  onAiChunk: (requestId: string, callback: (delta: string) => void) => () => void
+  onAiEnd: (requestId: string, callback: () => void) => () => void
+  onAiError: (requestId: string, callback: (error: string) => void) => () => void
+  abortAiMessage: (requestId: string) => void
 }
 
 declare global {
