@@ -1,6 +1,6 @@
 // tests/main/config/ConfigManager.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { ConfigManager } from '../../../src/main/config/ConfigManager'
@@ -51,10 +51,9 @@ describe('ConfigManager', () => {
   })
 
   it('returns default config on corrupted file', () => {
-    const { writeFileSync } = require('fs')
     writeFileSync(join(tmpDir, 'config.json'), 'not valid json')
-
     const config = manager.load()
     expect(config).toEqual(DEFAULT_CONFIG)
+    expect(existsSync(join(tmpDir, 'config.json.bak'))).toBe(true)
   })
 })

@@ -16,6 +16,8 @@ export class ConfigManager {
     }
     try {
       const raw = readFileSync(this.configPath, 'utf-8')
+      // Shallow merge: new top-level keys get defaults, but nested sub-object keys do not.
+      // If DEFAULT_CONFIG gains nested required keys in the future, a recursive merge will be needed.
       return { ...structuredClone(DEFAULT_CONFIG), ...JSON.parse(raw) }
     } catch {
       const backupPath = this.configPath + '.bak'
