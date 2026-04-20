@@ -1,14 +1,18 @@
 // src/renderer/src/components/Sidebar/Sidebar.tsx
 import { useState } from 'react'
 import { useSessionStore } from '../../store/useSessionStore'
+import { useSplitStore } from '../../store/useSplitStore'
+import { GroupItem } from './GroupItem'
+import { QuickCommands } from './QuickCommands'
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 10)
 }
 
 export function Sidebar(): JSX.Element {
-  const { sessions, activeSessionId, setActive } = useSessionStore()
+  const sessions = useSessionStore((s) => s.sessions)
   const addSession = useSessionStore((s) => s.addSession)
+  const { panes, activePaneId, assignSession, addPane } = useSplitStore()
   const [isCreating, setIsCreating] = useState(false)
 
   const handleNewTerminal = async (): Promise<void> => {
@@ -18,17 +22,23 @@ export function Sidebar(): JSX.Element {
       const id = generateId()
       const homedir = await window.api.getHomedir()
       const { pid } = await window.api.create({ id, cwd: homedir })
-      addSession({
-        id,
-        title: `终端 ${sessions.length + 1}`,
-        groupId: 'default',
-        pid,
-        status: 'running'
-      })
+      const sessionNum = sessions.length + 1
+      addSession({ id, title: `终端 ${sessionNum}`, groupId: 'default', pid, status: 'running' })
+
+      const emptyPane = panes.find((p) => !p.sessionId)
+      if (emptyPane) {
+        assignSession(emptyPane.id, id)
+      } else if (activePaneId) {
+        assignSession(activePaneId, id)
+      } else {
+        addPane(id)
+      }
     } finally {
       setIsCreating(false)
     }
   }
+
+  const defaultSessions = sessions.filter((s) => s.groupId === 'default')
 
   return (
     <div style={{
@@ -70,36 +80,16 @@ export function Sidebar(): JSX.Element {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
-        <div style={{ color: '#8892a4', fontSize: '10px', letterSpacing: '1px', marginBottom: '4px' }}>
-          会话
-        </div>
-        {sessions.map((session) => (
-          <div
-            key={session.id}
-            onClick={() => setActive(session.id)}
-            style={{
-              padding: '5px 8px',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              color: session.id === activeSessionId ? '#ccd6f6' : '#8892a4',
-              backgroundColor: session.id === activeSessionId ? '#0f3460' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginBottom: '2px'
-            }}
-          >
-            <span style={{ color: session.status === 'disconnected' ? '#f85149' : '#64ffda' }}>
-              {session.status === 'disconnected' ? '○' : '●'}
-            </span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {session.title}
-            </span>
-          </div>
-        ))}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 4px' }}>
+        <GroupItem
+          groupId="default"
+          groupName="会话"
+          sessions={defaultSessions}
+          activePaneId={activePaneId}
+        />
       </div>
+
+      <QuickCommands />
     </div>
   )
 }
