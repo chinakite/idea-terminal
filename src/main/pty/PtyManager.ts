@@ -2,7 +2,7 @@
 import * as pty from 'node-pty'
 import { platform } from 'os'
 
-interface PtySession {
+export interface PtySession {
   id: string
   pid: number
   process: pty.IPty
@@ -57,16 +57,16 @@ export class PtyManager {
   }
 
   destroyAll(): void {
-    for (const id of this.sessions.keys()) {
+    for (const id of [...this.sessions.keys()]) {
       this.destroy(id)
     }
   }
 
-  onData(id: string, callback: (data: string) => void): void {
-    this.sessions.get(id)?.process.onData(callback)
+  onData(id: string, callback: (data: string) => void): pty.IDisposable | undefined {
+    return this.sessions.get(id)?.process.onData(callback)
   }
 
-  onExit(id: string, callback: (code: number) => void): void {
-    this.sessions.get(id)?.process.onExit(({ exitCode }) => callback(exitCode))
+  onExit(id: string, callback: (code: number) => void): pty.IDisposable | undefined {
+    return this.sessions.get(id)?.process.onExit(({ exitCode }) => callback(exitCode))
   }
 }

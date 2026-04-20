@@ -34,4 +34,25 @@ describe('PtyManager', () => {
     manager.create({ id: 's1', cwd: process.cwd() })
     expect(() => manager.write('s1', 'echo hello\r')).not.toThrow()
   })
+
+  it('destroyAll clears all sessions', () => {
+    manager.create({ id: 's1', cwd: process.cwd() })
+    manager.create({ id: 's2', cwd: process.cwd() })
+    manager.destroyAll()
+    expect(manager.list()).toHaveLength(0)
+  })
+
+  it('onData returns a disposable', () => {
+    manager.create({ id: 's1', cwd: process.cwd() })
+    const disposable = manager.onData('s1', () => {})
+    expect(disposable).toBeDefined()
+    expect(typeof disposable?.dispose).toBe('function')
+  })
+
+  it('onExit returns a disposable', () => {
+    manager.create({ id: 's1', cwd: process.cwd() })
+    const disposable = manager.onExit('s1', () => {})
+    expect(disposable).toBeDefined()
+    expect(typeof disposable?.dispose).toBe('function')
+  })
 })
