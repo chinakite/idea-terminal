@@ -1,5 +1,5 @@
 // src/renderer/src/components/CommandPalette/CommandPalette.tsx
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSessionStore } from '../../store/useSessionStore'
 import { useConfigStore } from '../../store/useConfigStore'
 import { useSplitStore } from '../../store/useSplitStore'
@@ -31,7 +31,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
   const { panes, activePaneId, addPane, removePane, assignSession, getActivePaneSessionId } =
     useSplitStore()
 
-  const buildCommands = useCallback((): Command[] => {
+  const commands = useMemo((): Command[] => {
     const cmds: Command[] = []
 
     cmds.push({
@@ -102,9 +102,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
     })
 
     return cmds
-  }, [sessions, config.quickCommands, panes, activePaneId])
+  }, [sessions, config.quickCommands, panes, activePaneId, addSession, addPane, removePane, assignSession, getActivePaneSessionId, onClose])
 
-  const filtered = buildCommands().filter(
+  const filtered = commands.filter(
     (c) =>
       !query ||
       c.label.toLowerCase().includes(query.toLowerCase()) ||
@@ -115,7 +115,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
     if (open) {
       setQuery('')
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const timerId = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => clearTimeout(timerId)
     }
   }, [open])
 
