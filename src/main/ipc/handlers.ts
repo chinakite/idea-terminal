@@ -115,6 +115,7 @@ export function registerHandlers(
     const config = configManager.load()
     config.aiAgents = config.aiAgents.filter((a) => a.id !== id)
     configManager.save(config)
+    return { success: true }
   })
 
   // ── AI Streaming ──────────────────────────────────────────────────────────
