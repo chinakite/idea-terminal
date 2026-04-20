@@ -61,6 +61,12 @@ export interface AiAgentConfig {
   updatedAt: number
 }
 
+export interface AiMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+}
+
 export const DEFAULT_CONFIG: AppConfig = {
   groups: [],
   quickCommands: [],
