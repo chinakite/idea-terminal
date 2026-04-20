@@ -46,8 +46,10 @@ export function Sidebar(): JSX.Element {
         fontWeight: 'bold',
         fontSize: '12px',
         letterSpacing: '1px',
-        borderBottom: '1px solid #0f3460'
-      }}>
+        borderBottom: '1px solid #0f3460',
+        WebkitAppRegion: 'drag',
+        userSelect: 'none'
+      } as React.CSSProperties}>
         IDEA TERMINAL
       </div>
 
