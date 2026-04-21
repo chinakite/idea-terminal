@@ -20,6 +20,16 @@ interface SessionStore {
   closeSession: (id: string) => void
   setActive: (id: string) => void
   markDisconnected: (id: string) => void
+  /** Updates the display title of an existing session. */
+  renameSession: (id: string, title: string) => void
+  /**
+   * Moves a session to a different group and repositions it in the flat sessions array.
+   * @param id             Session to move
+   * @param targetGroupId  Destination group id
+   * @param insertAfterId  Insert after this session id, or null to insert before the
+   *                       first session already in targetGroupId (appends if group is empty)
+   */
+  moveSession: (id: string, targetGroupId: string, insertAfterId: string | null) => void
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
@@ -53,5 +63,41 @@ export const useSessionStore = create<SessionStore>((set) => ({
   markDisconnected: (id) =>
     set((state) => ({
       sessions: state.sessions.map((s) => (s.id === id ? { ...s, status: 'disconnected' } : s))
-    }))
+    })),
+
+  renameSession: (id, title) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) => (s.id === id ? { ...s, title } : s))
+    })),
+
+  moveSession: (id, targetGroupId, insertAfterId) =>
+    set((state) => {
+      const session = state.sessions.find((s) => s.id === id)
+      if (!session) return state
+      const updated = { ...session, groupId: targetGroupId }
+      // Remove from current position
+      const remaining = state.sessions.filter((s) => s.id !== id)
+
+      if (insertAfterId === null) {
+        // Insert before the first existing session of targetGroupId
+        const firstIdx = remaining.findIndex((s) => s.groupId === targetGroupId)
+        if (firstIdx === -1) {
+          // Target group has no sessions — append to end
+          return { sessions: [...remaining, updated] }
+        }
+        const next = [...remaining]
+        next.splice(firstIdx, 0, updated)
+        return { sessions: next }
+      }
+
+      // Insert after insertAfterId
+      const afterIdx = remaining.findIndex((s) => s.id === insertAfterId)
+      if (afterIdx === -1) {
+        // insertAfterId not found (should not happen in normal use) — append
+        return { sessions: [...remaining, updated] }
+      }
+      const next = [...remaining]
+      next.splice(afterIdx + 1, 0, updated)
+      return { sessions: next }
+    })
 }))
