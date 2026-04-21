@@ -8,12 +8,14 @@ interface GroupItemProps {
   groupId: string
   groupName: string
   sessions: RuntimeSession[]
-  activePaneId: string | null
 }
 
-export function GroupItem({ groupId, groupName, sessions, activePaneId }: GroupItemProps): JSX.Element {
+export function GroupItem({ groupId, groupName, sessions }: GroupItemProps): JSX.Element {
   const [collapsed, setCollapsed] = useState(false)
-  const { panes, setActivePane, assignSession } = useSplitStore()
+  const collectLeaves = useSplitStore((s) => s.collectLeaves)
+  const setActivePane = useSplitStore((s) => s.setActivePane)
+  const assignSession = useSplitStore((s) => s.assignSession)
+  const activePaneId = useSplitStore((s) => s.activePaneId)
   const proxies = useConfigStore((s) => s.config.proxies)
 
   const getProxyName = (proxyId?: string): string | undefined => {
@@ -22,7 +24,8 @@ export function GroupItem({ groupId, groupName, sessions, activePaneId }: GroupI
   }
 
   const handleSessionClick = (sessionId: string): void => {
-    const existingPane = panes.find((p) => p.sessionId === sessionId)
+    const leaves = collectLeaves()
+    const existingPane = leaves.find((l) => l.sessionId === sessionId)
     if (existingPane) {
       setActivePane(existingPane.id)
     } else if (activePaneId) {
@@ -30,7 +33,7 @@ export function GroupItem({ groupId, groupName, sessions, activePaneId }: GroupI
     }
   }
 
-  const activePaneSessionId = panes.find((p) => p.id === activePaneId)?.sessionId
+  const activePaneSessionId = collectLeaves().find((l) => l.id === activePaneId)?.sessionId
 
   return (
     <div style={{ marginBottom: '4px' }}>

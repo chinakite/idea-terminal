@@ -1,81 +1,228 @@
 // tests/renderer/store/useSplitStore.test.ts
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useSplitStore } from '../../../src/renderer/src/store/useSplitStore'
+import {
+  countLeaves,
+  collectLeaves,
+  splitAt,
+  removeLeaf,
+  updateRatioInTree,
+  clearSessionInTree,
+  assignSessionInTree,
+  findLeafBySession,
+  useSplitStore
+} from '../../../src/renderer/src/store/useSplitStore'
+import type { SplitNode } from '../../../src/renderer/src/store/useSplitStore'
+
+// ── pure helper tests ─────────────────────────────────────────────────────────
+
+const leaf = (id: string, sessionId: string | null = null): SplitNode =>
+  ({ type: 'leaf', id, sessionId })
+
+const split = (
+  id: string,
+  direction: 'h' | 'v',
+  first: SplitNode,
+  second: SplitNode,
+  ratio = 0.5
+): SplitNode => ({ type: 'split', id, direction, ratio, first, second })
+
+describe('countLeaves', () => {
+  it('counts a single leaf as 1', () => {
+    expect(countLeaves(leaf('a'))).toBe(1)
+  })
+
+  it('counts a tree with two leaves as 2', () => {
+    expect(countLeaves(split('s1', 'h', leaf('a'), leaf('b')))).toBe(2)
+  })
+
+  it('counts a 3-leaf tree correctly', () => {
+    const tree = split('s1', 'h', leaf('a'), split('s2', 'v', leaf('b'), leaf('c')))
+    expect(countLeaves(tree)).toBe(3)
+  })
+})
+
+describe('collectLeaves', () => {
+  it('returns single leaf', () => {
+    expect(collectLeaves(leaf('a', 's1'))).toEqual([{ id: 'a', sessionId: 's1' }])
+  })
+
+  it('returns all leaves left-to-right', () => {
+    const tree = split('s1', 'h', leaf('a', 'sa'), leaf('b', 'sb'))
+    expect(collectLeaves(tree)).toEqual([
+      { id: 'a', sessionId: 'sa' },
+      { id: 'b', sessionId: 'sb' }
+    ])
+  })
+})
+
+describe('splitAt', () => {
+  it('replaces target leaf with a split node', () => {
+    const result = splitAt(leaf('a'), 'a', 'h', 'new-leaf', 'new-split')
+    expect(result.type).toBe('split')
+    if (result.type !== 'split') return
+    expect(result.direction).toBe('h')
+    expect(result.ratio).toBe(0.5)
+    expect(result.first).toEqual(leaf('a'))
+    expect(result.second).toEqual(leaf('new-leaf', null))
+  })
+
+  it('leaves non-target nodes unchanged', () => {
+    const original = leaf('b')
+    const result = splitAt(original, 'other-id', 'v', 'x', 'y')
+    expect(result).toBe(original)
+  })
+
+  it('splits a nested leaf', () => {
+    const tree = split('s1', 'h', leaf('a'), leaf('b'))
+    const result = splitAt(tree, 'b', 'v', 'c', 's2')
+    if (result.type !== 'split') throw new Error()
+    expect(result.second.type).toBe('split')
+    if (result.second.type !== 'split') return
+    expect(result.second.direction).toBe('v')
+    expect(countLeaves(result)).toBe(3)
+  })
+})
+
+describe('removeLeaf', () => {
+  it('returns null when removing the only leaf', () => {
+    expect(removeLeaf(leaf('a'), 'a')).toBeNull()
+  })
+
+  it('returns the sibling when one leaf is removed from a 2-leaf tree', () => {
+    const tree = split('s1', 'h', leaf('a'), leaf('b'))
+    expect(removeLeaf(tree, 'a')).toEqual(leaf('b'))
+    expect(removeLeaf(tree, 'b')).toEqual(leaf('a'))
+  })
+
+  it('promotes sibling correctly in a 3-leaf tree', () => {
+    const tree = split('s1', 'h', leaf('a'), split('s2', 'v', leaf('b'), leaf('c')))
+    const result = removeLeaf(tree, 'b')
+    if (!result || result.type !== 'split') throw new Error()
+    expect(countLeaves(result)).toBe(2)
+    expect(result.second).toEqual(leaf('c'))
+  })
+})
+
+describe('updateRatioInTree', () => {
+  it('updates ratio of matching split node', () => {
+    const tree = split('s1', 'h', leaf('a'), leaf('b'))
+    const result = updateRatioInTree(tree, 's1', 0.3)
+    if (result.type !== 'split') throw new Error()
+    expect(result.ratio).toBe(0.3)
+  })
+
+  it('leaves non-matching nodes unchanged', () => {
+    const tree = split('s1', 'h', leaf('a'), leaf('b'))
+    const result = updateRatioInTree(tree, 'other', 0.3)
+    if (result.type !== 'split') throw new Error()
+    expect(result.ratio).toBe(0.5)
+  })
+})
+
+describe('clearSessionInTree', () => {
+  it('nullifies sessionId for matching session', () => {
+    const tree = split('s1', 'h', leaf('a', 'sess1'), leaf('b', 'sess2'))
+    const result = clearSessionInTree(tree, 'sess1')
+    expect(collectLeaves(result)[0].sessionId).toBeNull()
+    expect(collectLeaves(result)[1].sessionId).toBe('sess2')
+  })
+})
+
+describe('assignSessionInTree', () => {
+  it('sets sessionId on the matching leaf', () => {
+    const tree = leaf('p1', null)
+    const result = assignSessionInTree(tree, 'p1', 'sess-x')
+    if (result.type !== 'leaf') throw new Error()
+    expect(result.sessionId).toBe('sess-x')
+  })
+})
+
+describe('findLeafBySession', () => {
+  it('finds the leaf with the given sessionId', () => {
+    const tree = split('s1', 'h', leaf('a', 'sess-a'), leaf('b', 'sess-b'))
+    const found = findLeafBySession(tree, 'sess-a')
+    expect(found?.id).toBe('a')
+  })
+
+  it('returns null if sessionId not in tree', () => {
+    expect(findLeafBySession(leaf('a', 'sess-a'), 'other')).toBeNull()
+  })
+})
+
+// ── store action tests ────────────────────────────────────────────────────────
 
 describe('useSplitStore', () => {
   beforeEach(() => {
-    useSplitStore.setState({
-      panes: [{ id: 'p1', sessionId: null }],
-      activePaneId: 'p1'
-    })
+    const rootLeaf: SplitNode = { type: 'leaf', id: 'p1', sessionId: null }
+    useSplitStore.setState({ root: rootLeaf, activePaneId: 'p1' })
   })
 
-  it('starts with one empty pane', () => {
-    const { panes, activePaneId } = useSplitStore.getState()
-    expect(panes).toHaveLength(1)
-    expect(panes[0].sessionId).toBeNull()
+  it('starts with one empty leaf as root', () => {
+    const { root, activePaneId } = useSplitStore.getState()
+    expect(root.type).toBe('leaf')
     expect(activePaneId).toBe('p1')
+    expect(countLeaves(root)).toBe(1)
   })
 
-  it('addPane adds a pane and makes it active', () => {
-    const id = useSplitStore.getState().addPane('s1')
-    const { panes, activePaneId } = useSplitStore.getState()
-    expect(panes).toHaveLength(2)
-    expect(panes[1].sessionId).toBe('s1')
-    expect(activePaneId).toBe(id)
+  it('splitPane adds a new leaf and makes it active', () => {
+    useSplitStore.getState().splitPane('p1', 'h')
+    const { root, activePaneId } = useSplitStore.getState()
+    expect(countLeaves(root)).toBe(2)
+    expect(activePaneId).not.toBe('p1')
   })
 
-  it('addPane returns null when 4 panes exist', () => {
-    useSplitStore.setState({
-      panes: [
-        { id: 'p1', sessionId: null },
-        { id: 'p2', sessionId: null },
-        { id: 'p3', sessionId: null },
-        { id: 'p4', sessionId: null }
-      ],
-      activePaneId: 'p1'
-    })
-    const result = useSplitStore.getState().addPane()
-    expect(result).toBeNull()
+  it('splitPane respects 9-pane maximum', () => {
+    for (let i = 0; i < 8; i++) {
+      const leaves = collectLeaves(useSplitStore.getState().root)
+      useSplitStore.getState().splitPane(leaves[0].id, 'h')
+    }
+    expect(countLeaves(useSplitStore.getState().root)).toBe(9)
+    // 10th split should be ignored
+    const leaves = collectLeaves(useSplitStore.getState().root)
+    useSplitStore.getState().splitPane(leaves[0].id, 'h')
+    expect(countLeaves(useSplitStore.getState().root)).toBe(9)
   })
 
-  it('removePane removes pane and updates active', () => {
-    useSplitStore.setState({
-      panes: [{ id: 'p1', sessionId: 's1' }, { id: 'p2', sessionId: 's2' }],
-      activePaneId: 'p1'
-    })
-    useSplitStore.getState().removePane('p1')
-    const { panes, activePaneId } = useSplitStore.getState()
-    expect(panes).toHaveLength(1)
-    expect(activePaneId).toBe('p2')
+  it('closePane removes a leaf, keeps at least one', () => {
+    useSplitStore.getState().splitPane('p1', 'h')
+    const { root } = useSplitStore.getState()
+    const leaves = collectLeaves(root)
+    useSplitStore.getState().closePane(leaves[1].id)
+    expect(countLeaves(useSplitStore.getState().root)).toBe(1)
   })
 
-  it('removePane keeps at least one pane', () => {
-    useSplitStore.getState().removePane('p1')
-    expect(useSplitStore.getState().panes).toHaveLength(1)
+  it('closePane does nothing when only one pane exists', () => {
+    useSplitStore.getState().closePane('p1')
+    expect(countLeaves(useSplitStore.getState().root)).toBe(1)
   })
 
-  it('assignSession updates pane sessionId', () => {
-    useSplitStore.getState().assignSession('p1', 's99')
-    expect(useSplitStore.getState().panes[0].sessionId).toBe('s99')
+  it('closePane updates activePaneId when active pane is closed', () => {
+    useSplitStore.getState().splitPane('p1', 'h')
+    const { activePaneId } = useSplitStore.getState()
+    useSplitStore.getState().closePane(activePaneId)
+    expect(useSplitStore.getState().activePaneId).not.toBe(activePaneId)
+    expect(countLeaves(useSplitStore.getState().root)).toBe(1)
   })
 
-  it('clearSession nullifies matching pane', () => {
-    useSplitStore.setState({
-      panes: [{ id: 'p1', sessionId: 's1' }, { id: 'p2', sessionId: 's2' }],
-      activePaneId: 'p1'
-    })
-    useSplitStore.getState().clearSession('s1')
-    const { panes } = useSplitStore.getState()
-    expect(panes[0].sessionId).toBeNull()
-    expect(panes[1].sessionId).toBe('s2')
+  it('assignSession sets sessionId on the target leaf', () => {
+    useSplitStore.getState().assignSession('p1', 'sess-99')
+    expect(useSplitStore.getState().getActivePaneSessionId()).toBe('sess-99')
   })
 
-  it('getActivePaneSessionId returns active pane session', () => {
-    useSplitStore.setState({
-      panes: [{ id: 'p1', sessionId: 'sess-abc' }],
-      activePaneId: 'p1'
-    })
+  it('clearSession nullifies matching leaf', () => {
+    useSplitStore.getState().assignSession('p1', 'sess-1')
+    useSplitStore.getState().clearSession('sess-1')
+    expect(useSplitStore.getState().getActivePaneSessionId()).toBeNull()
+  })
+
+  it('getActivePaneSessionId returns the active leaf sessionId', () => {
+    useSplitStore.getState().assignSession('p1', 'sess-abc')
     expect(useSplitStore.getState().getActivePaneSessionId()).toBe('sess-abc')
+  })
+
+  it('collectLeaves returns all leaves', () => {
+    useSplitStore.getState().splitPane('p1', 'v')
+    const leaves = useSplitStore.getState().collectLeaves()
+    expect(leaves).toHaveLength(2)
   })
 })

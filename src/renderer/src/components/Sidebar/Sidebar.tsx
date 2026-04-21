@@ -14,7 +14,9 @@ function generateId(): string {
 export function Sidebar(): JSX.Element {
   const sessions = useSessionStore((s) => s.sessions)
   const addSession = useSessionStore((s) => s.addSession)
-  const { panes, activePaneId, assignSession, addPane } = useSplitStore()
+  const collectLeaves = useSplitStore((s) => s.collectLeaves)
+  const activePaneId = useSplitStore((s) => s.activePaneId)
+  const assignSession = useSplitStore((s) => s.assignSession)
   const proxies = useConfigStore((s) => s.config.proxies)
   const removeProxy = useConfigStore((s) => s.removeProxy)
   const [isCreating, setIsCreating] = useState(false)
@@ -32,13 +34,12 @@ export function Sidebar(): JSX.Element {
       const sessionNum = sessions.length + 1
       addSession({ id, title: `终端 ${sessionNum}`, groupId: 'default', pid, status: 'running', proxyId })
 
-      const emptyPane = panes.find((p) => !p.sessionId)
+      const leaves = collectLeaves()
+      const emptyPane = leaves.find((l) => !l.sessionId)
       if (emptyPane) {
         assignSession(emptyPane.id, id)
       } else if (activePaneId) {
         assignSession(activePaneId, id)
-      } else {
-        addPane(id)
       }
     } finally {
       setIsCreating(false)
@@ -151,7 +152,6 @@ export function Sidebar(): JSX.Element {
           groupId="default"
           groupName="会话"
           sessions={defaultSessions}
-          activePaneId={activePaneId}
         />
       </div>
 
