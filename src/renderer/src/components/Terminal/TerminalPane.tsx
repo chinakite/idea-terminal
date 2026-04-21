@@ -82,10 +82,11 @@ export function TerminalPane({
     ]
 
     // Guard: only fit when the container has non-zero dimensions
+    // Use the `fit` callback (not fitAddon.fit directly) so PTY receives updated dimensions
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          fitAddon.fit()
+          fit()
         }
       }
     })
