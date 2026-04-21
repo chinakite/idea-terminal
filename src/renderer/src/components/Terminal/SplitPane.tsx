@@ -166,15 +166,25 @@ export function SplitPane(): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
 
-  const { root, activePaneId, splitPane, closePane, setRatio, setActivePane } = useSplitStore()
+  // Use per-field selectors to avoid re-rendering all TerminalPanes on ratio changes during drag
+  const root = useSplitStore((s) => s.root)
+  const activePaneId = useSplitStore((s) => s.activePaneId)
+  const splitPane = useSplitStore((s) => s.splitPane)
+  const closePane = useSplitStore((s) => s.closePane)
+  const setRatio = useSplitStore((s) => s.setRatio)
+  const setActivePane = useSplitStore((s) => s.setActivePane)
   const sessions = useSessionStore((s) => s.sessions)
 
-  // Track container dimensions for layout computation
+  // Track container dimensions for layout computation.
+  // Seed initial size from getBoundingClientRect so first-paint layout is correct
+  // before the ResizeObserver fires.
   useLayoutEffect(() => {
     if (!containerRef.current) return
+    const { width, height } = containerRef.current.getBoundingClientRect()
+    if (width > 0 && height > 0) setContainerSize({ w: width, h: height })
     const obs = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect
-      if (width > 0 && height > 0) setContainerSize({ w: width, h: height })
+      const { width: w, height: h } = entries[0].contentRect
+      if (w > 0 && h > 0) setContainerSize({ w, h })
     })
     obs.observe(containerRef.current)
     return () => obs.disconnect()
@@ -229,6 +239,9 @@ export function SplitPane(): JSX.Element {
               isActive={isActive}
               onSplitH={assignedLeaf ? () => splitPane(assignedLeaf.id, 'h') : undefined}
               onSplitV={assignedLeaf ? () => splitPane(assignedLeaf.id, 'v') : undefined}
+              // closePane removes the pane slot from the layout; it intentionally does NOT
+              // kill the underlying session — the PTY and its scrollback remain alive and
+              // the session stays reachable from the sidebar (design spec §Issue 1).
               onClose={assignedLeaf ? () => closePane(assignedLeaf.id) : undefined}
             />
           </div>
