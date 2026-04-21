@@ -1,7 +1,13 @@
 # Idea Terminal — 设计文档
 
 **日期：** 2026-04-20  
-**状态：** 草稿
+**状态：** 实施中（Plan 1-4 已完成）
+
+**实现进度：**
+- ✅ Plan 1: 基础终端管理（PTY + xterm.js + 配置系统）
+- ✅ Plan 2: 分屏 + 分组 + 快捷命令 + 命令面板
+- ✅ Plan 3: AI Agent 集成（Claude / OpenAI / 自定义 API）
+- ✅ Plan 4: 网络代理管理（per-session pty env 注入）
 
 ---
 
