@@ -3,7 +3,7 @@ import type { AppConfig, AiAgentConfig } from '../../../shared/types'
 
 export interface TerminalAPI {
   // 终端生命周期
-  create: (options: { id: string; cwd: string }) => Promise<{ pid: number }>
+  create: (options: { id: string; cwd: string; proxyId?: string }) => Promise<{ pid: number }>
   destroy: (id: string) => Promise<void>
   write: (id: string, data: string) => void
   resize: (id: string, cols: number, rows: number) => void

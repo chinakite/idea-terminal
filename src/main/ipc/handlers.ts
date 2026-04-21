@@ -7,6 +7,7 @@ import { ConfigManager } from '../config/ConfigManager'
 import { AiKeyStore } from '../ai/AiKeyStore'
 import { AiManager, ChatMessage } from '../ai/AiManager'
 import type { AiAgentConfig } from '../../shared/types'
+import { buildProxyEnv } from '../proxy/buildProxyEnv'
 
 export function registerHandlers(
   ptyManager: PtyManager,
@@ -19,11 +20,18 @@ export function registerHandlers(
 
   // ── Terminal ──────────────────────────────────────────────────────────────
 
-  ipcMain.handle('terminal:create', (_event, options: { id: string; cwd: string }) => {
+  ipcMain.handle('terminal:create', (_event, options: { id: string; cwd: string; proxyId?: string }) => {
     const win = BrowserWindow.fromWebContents(_event.sender)
     if (!win) return { pid: -1 }
 
-    const result = ptyManager.create(options)
+    let proxyEnv: Record<string, string> = {}
+    if (options.proxyId) {
+      const config = configManager.load()
+      const proxy = config.proxies.find((p) => p.id === options.proxyId)
+      proxyEnv = buildProxyEnv(proxy)
+    }
+
+    const result = ptyManager.create({ ...options, env: proxyEnv })
 
     const dataDisposable = ptyManager.onData(options.id, (data) => {
       if (!win.isDestroyed()) win.webContents.send(`terminal:data:${options.id}`, data)
