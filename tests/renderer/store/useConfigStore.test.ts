@@ -63,4 +63,38 @@ describe('useConfigStore', () => {
     expect(useConfigStore.getState().config.quickCommands).toHaveLength(0)
     expect(mockApi.saveConfig).toHaveBeenCalledOnce()
   })
+
+  it('addProxy adds a proxy to config', () => {
+    useConfigStore.getState().addProxy({
+      name: 'Local',
+      type: 'http',
+      host: '127.0.0.1',
+      port: 7890
+    })
+    const proxies = useConfigStore.getState().config.proxies
+    expect(proxies).toHaveLength(1)
+    expect(proxies[0].name).toBe('Local')
+    expect(proxies[0].type).toBe('http')
+    expect(proxies[0].id).toBeTruthy()
+  })
+
+  it('removeProxy removes proxy by id', () => {
+    useConfigStore.getState().addProxy({ name: 'P1', type: 'http', host: '127.0.0.1', port: 7890 })
+    useConfigStore.getState().addProxy({ name: 'P2', type: 'socks5', host: '127.0.0.1', port: 1080 })
+    const id = useConfigStore.getState().config.proxies[0].id
+    useConfigStore.getState().removeProxy(id)
+    const proxies = useConfigStore.getState().config.proxies
+    expect(proxies).toHaveLength(1)
+    expect(proxies[0].name).toBe('P2')
+  })
+
+  it('updateProxy updates existing proxy fields', () => {
+    useConfigStore.getState().addProxy({ name: 'Old', type: 'http', host: '127.0.0.1', port: 7890 })
+    const id = useConfigStore.getState().config.proxies[0].id
+    useConfigStore.getState().updateProxy(id, { name: 'New', port: 8080 })
+    const proxy = useConfigStore.getState().config.proxies[0]
+    expect(proxy.name).toBe('New')
+    expect(proxy.port).toBe(8080)
+    expect(proxy.type).toBe('http') // unchanged
+  })
 })

@@ -1,6 +1,6 @@
 // src/renderer/src/store/useConfigStore.ts
 import { create } from 'zustand'
-import { AppConfig, DEFAULT_CONFIG, TerminalGroup, QuickCommand } from '../../../shared/types'
+import { AppConfig, DEFAULT_CONFIG, TerminalGroup, QuickCommand, ProxyConfig } from '../../../shared/types'
 
 const genId = (): string => Math.random().toString(36).slice(2, 10)
 
@@ -14,6 +14,9 @@ interface ConfigStore {
   removeGroup: (id: string) => void
   addQuickCommand: (label: string, command: string) => QuickCommand
   removeQuickCommand: (id: string) => void
+  addProxy: (data: Omit<ProxyConfig, 'id' | 'createdAt' | 'updatedAt'>) => ProxyConfig
+  removeProxy: (id: string) => void
+  updateProxy: (id: string, updates: Partial<Omit<ProxyConfig, 'id' | 'createdAt'>>) => void
 }
 
 export const useConfigStore = create<ConfigStore>((set, get) => ({
@@ -41,7 +44,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     set((state) => ({
       config: { ...state.config, groups: [...state.config.groups, group] }
     }))
-    get().save()
+    get().save().catch(console.error)
     return group
   },
 
@@ -54,7 +57,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         )
       }
     }))
-    get().save()
+    get().save().catch(console.error)
   },
 
   removeGroup: (id) => {
@@ -64,7 +67,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         groups: state.config.groups.filter((g) => g.id !== id)
       }
     }))
-    get().save()
+    get().save().catch(console.error)
   },
 
   addQuickCommand: (label, command) => {
@@ -73,7 +76,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     set((state) => ({
       config: { ...state.config, quickCommands: [...state.config.quickCommands, qc] }
     }))
-    get().save()
+    get().save().catch(console.error)
     return qc
   },
 
@@ -84,6 +87,35 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         quickCommands: state.config.quickCommands.filter((q) => q.id !== id)
       }
     }))
-    get().save()
+    get().save().catch(console.error)
+  },
+
+  addProxy: (data) => {
+    const now = Date.now()
+    const proxy: ProxyConfig = { id: genId(), ...data, createdAt: now, updatedAt: now }
+    set((state) => ({
+      config: { ...state.config, proxies: [...state.config.proxies, proxy] }
+    }))
+    get().save().catch(console.error)
+    return proxy
+  },
+
+  removeProxy: (id) => {
+    set((state) => ({
+      config: { ...state.config, proxies: state.config.proxies.filter((p) => p.id !== id) }
+    }))
+    get().save().catch(console.error)
+  },
+
+  updateProxy: (id, updates) => {
+    set((state) => ({
+      config: {
+        ...state.config,
+        proxies: state.config.proxies.map((p) =>
+          p.id === id ? { ...p, ...updates, updatedAt: Date.now() } : p
+        )
+      }
+    }))
+    get().save().catch(console.error)
   }
 }))
