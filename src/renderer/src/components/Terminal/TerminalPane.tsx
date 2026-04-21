@@ -4,6 +4,7 @@ import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import { useSessionStore } from '../../store/useSessionStore'
+import { useTerminalOutputStore } from '../../store/useTerminalOutputStore'
 import 'xterm/css/xterm.css'
 
 interface TerminalPaneProps {
@@ -51,7 +52,10 @@ export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.El
     fitAddonRef.current = fitAddon
 
     const disposeInput = term.onData((data) => window.api.write(sessionId, data))
-    const removeData = window.api.onData(sessionId, (data) => term.write(data))
+    const removeData = window.api.onData(sessionId, (data) => {
+      term.write(data)
+      useTerminalOutputStore.getState().appendData(sessionId, data)
+    })
     const removeExit = window.api.onExit(sessionId, () => {
       term.write('\r\n\x1b[33m[进程已退出]\x1b[0m\r\n')
       markDisconnected(sessionId)
