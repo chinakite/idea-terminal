@@ -28,8 +28,12 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
   const sessions = useSessionStore((s) => s.sessions)
   const addSession = useSessionStore((s) => s.addSession)
   const { config } = useConfigStore()
-  const { panes, activePaneId, addPane, removePane, assignSession, getActivePaneSessionId } =
-    useSplitStore()
+  const leaves = useSplitStore((s) => s.collectLeaves())
+  const activePaneId = useSplitStore((s) => s.activePaneId)
+  const splitPane = useSplitStore((s) => s.splitPane)
+  const closePane = useSplitStore((s) => s.closePane)
+  const assignSession = useSplitStore((s) => s.assignSession)
+  const getActivePaneSessionId = useSplitStore((s) => s.getActivePaneSessionId)
 
   const commands = useMemo((): Command[] => {
     const cmds: Command[] = []
@@ -44,7 +48,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
         const { pid } = await window.api.create({ id, cwd: homedir })
         const sessionNum = sessions.length + 1
         addSession({ id, title: `终端 ${sessionNum}`, groupId: 'default', pid, status: 'running' })
-        const emptyPane = panes.find((p) => !p.sessionId)
+        const emptyPane = leaves.find((l) => !l.sessionId)
         if (emptyPane) {
           assignSession(emptyPane.id, id)
         } else if (activePaneId) {
@@ -54,20 +58,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
       }
     })
 
-    if (panes.length < 4) {
+    if (leaves.length < 9) {
       cmds.push({
         id: 'split-pane',
         label: '新增分屏窗格',
-        description: `当前 ${panes.length} 个窗格，最多 4 个`,
-        action: () => { addPane(); onClose() }
+        description: `当前 ${leaves.length} 个窗格，最多 9 个`,
+        action: () => { if (activePaneId) splitPane(activePaneId, 'h'); onClose() }
       })
     }
 
-    if (panes.length > 1 && activePaneId) {
+    if (leaves.length > 1 && activePaneId) {
       cmds.push({
         id: 'close-pane',
         label: '关闭当前窗格',
-        action: () => { removePane(activePaneId); onClose() }
+        action: () => { closePane(activePaneId); onClose() }
       })
     }
 
@@ -77,7 +81,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
         label: `切换到：${session.title}`,
         description: session.status === 'disconnected' ? '已断开' : '运行中',
         action: () => {
-          const pane = panes.find((p) => p.sessionId === session.id)
+          const pane = leaves.find((l) => l.sessionId === session.id)
           if (pane) {
             useSplitStore.getState().setActivePane(pane.id)
           } else if (activePaneId) {
@@ -102,7 +106,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
     })
 
     return cmds
-  }, [sessions, config.quickCommands, panes, activePaneId, addSession, addPane, removePane, assignSession, getActivePaneSessionId, onClose])
+  }, [sessions, config.quickCommands, leaves, activePaneId, addSession, splitPane, closePane, assignSession, getActivePaneSessionId, onClose])
 
   const filtered = commands.filter(
     (c) =>

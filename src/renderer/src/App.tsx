@@ -10,7 +10,7 @@ import { useSplitStore } from './store/useSplitStore'
 export default function App(): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const loadConfig = useConfigStore((s) => s.load)
-  const panes = useSplitStore((s) => s.panes)
+  const leaves = useSplitStore((s) => s.collectLeaves())
 
   useEffect(() => {
     loadConfig()
@@ -27,7 +27,7 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const showEmptyState = panes.every((p) => !p.sessionId) && panes.length === 1
+  const showEmptyState = leaves.length === 1 && !leaves[0]?.sessionId
 
   return (
     <div style={{

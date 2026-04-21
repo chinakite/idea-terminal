@@ -4,7 +4,11 @@ import { useSplitStore } from '../../store/useSplitStore'
 import { TerminalPane } from './TerminalPane'
 
 export function SplitPane(): JSX.Element {
-  const { panes, activePaneId, addPane, removePane, setActivePane } = useSplitStore()
+  const leaves = useSplitStore((s) => s.collectLeaves())
+  const activePaneId = useSplitStore((s) => s.activePaneId)
+  const splitPaneFn = useSplitStore((s) => s.splitPane)
+  const closePaneFn = useSplitStore((s) => s.closePane)
+  const setActivePane = useSplitStore((s) => s.setActivePane)
   const sessions = useSessionStore((s) => s.sessions)
 
   const getSessionTitle = (sessionId: string | null): string => {
@@ -13,23 +17,23 @@ export function SplitPane(): JSX.Element {
   }
 
   const handleAddPane = (): void => {
-    addPane()
+    if (activePaneId) splitPaneFn(activePaneId, 'h')
   }
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-      {panes.map((pane, index) => {
-        const isActive = pane.id === activePaneId
+      {leaves.map((leaf, index) => {
+        const isActive = leaf.id === activePaneId
         return (
           <div
-            key={pane.id}
-            onClick={() => setActivePane(pane.id)}
+            key={leaf.id}
+            onClick={() => setActivePane(leaf.id)}
             style={{
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
               borderLeft: index > 0 ? '2px solid #21262d' : 'none',
-              outline: isActive && panes.length > 1 ? '1px solid #0f3460' : 'none',
+              outline: isActive && leaves.length > 1 ? '1px solid #0f3460' : 'none',
               outlineOffset: '-1px',
               overflow: 'hidden'
             }}
@@ -47,10 +51,10 @@ export function SplitPane(): JSX.Element {
               userSelect: 'none'
             }}>
               <span style={{ flex: 1, fontSize: '11px', color: '#768390', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {getSessionTitle(pane.sessionId)}
+                {getSessionTitle(leaf.sessionId)}
               </span>
 
-              {panes.length < 4 && (
+              {leaves.length < 9 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddPane() }}
                   title="新增分屏"
@@ -63,9 +67,9 @@ export function SplitPane(): JSX.Element {
                 </button>
               )}
 
-              {panes.length > 1 && (
+              {leaves.length > 1 && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); removePane(pane.id) }}
+                  onClick={(e) => { e.stopPropagation(); closePaneFn(leaf.id) }}
                   title="关闭窗格"
                   style={{
                     background: 'none', border: 'none', color: '#768390',
@@ -80,8 +84,8 @@ export function SplitPane(): JSX.Element {
             </div>
 
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-              {pane.sessionId ? (
-                <TerminalPane sessionId={pane.sessionId} isActive={isActive} />
+              {leaf.sessionId ? (
+                <TerminalPane sessionId={leaf.sessionId} isActive={isActive} />
               ) : (
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',

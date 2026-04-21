@@ -225,4 +225,14 @@ describe('useSplitStore', () => {
     const leaves = useSplitStore.getState().collectLeaves()
     expect(leaves).toHaveLength(2)
   })
+
+  it('setRatio updates the ratio of the matching split node', () => {
+    useSplitStore.getState().splitPane('p1', 'h')
+    const { root } = useSplitStore.getState()
+    if (root.type !== 'split') throw new Error('expected split root')
+    useSplitStore.getState().setRatio(root.id, 0.3)
+    const updated = useSplitStore.getState().root
+    if (updated.type !== 'split') throw new Error('expected split root')
+    expect(updated.ratio).toBe(0.3)
+  })
 })
