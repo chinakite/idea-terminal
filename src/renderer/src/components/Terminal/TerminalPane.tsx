@@ -10,9 +10,21 @@ import 'xterm/css/xterm.css'
 interface TerminalPaneProps {
   sessionId: string
   isActive: boolean
+  /** Called when the user presses ⌘D (horizontal split) inside this terminal */
+  onSplitH?: () => void
+  /** Called when the user presses ⌘⇧D (vertical split) inside this terminal */
+  onSplitV?: () => void
+  /** Called when the user presses ⌘W (close pane) inside this terminal */
+  onClose?: () => void
 }
 
-export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.Element {
+export function TerminalPane({
+  sessionId,
+  isActive,
+  onSplitH,
+  onSplitV,
+  onClose
+}: TerminalPaneProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -26,6 +38,7 @@ export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.El
     window.api.resize(sessionId, cols, rows)
   }, [sessionId])
 
+  // Mount xterm once per sessionId
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -68,7 +81,14 @@ export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.El
       () => term.dispose()
     ]
 
-    const resizeObserver = new ResizeObserver(() => fitAddon.fit())
+    // Guard: only fit when the container has non-zero dimensions
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          fitAddon.fit()
+        }
+      }
+    })
     resizeObserver.observe(containerRef.current)
     cleanupRef.current.push(() => resizeObserver.disconnect())
 
@@ -78,6 +98,7 @@ export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.El
     }
   }, [sessionId])
 
+  // Focus and fit when this pane becomes active
   useEffect(() => {
     if (isActive) {
       fit()
@@ -85,15 +106,32 @@ export function TerminalPane({ sessionId, isActive }: TerminalPaneProps): JSX.El
     }
   }, [isActive, fit])
 
+  // Wire keyboard shortcuts via xterm's customKeyEventHandler
+  useEffect(() => {
+    const term = termRef.current
+    if (!term) return
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== 'keydown') return true
+      if (e.metaKey && !e.shiftKey && e.key === 'd') {
+        onSplitH?.()
+        return false
+      }
+      if (e.metaKey && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+        onSplitV?.()
+        return false
+      }
+      if (e.metaKey && e.key === 'w') {
+        onClose?.()
+        return false
+      }
+      return true
+    })
+  }, [onSplitH, onSplitV, onClose])
+
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        padding: '4px',
-        backgroundColor: '#0d1117'
-      }}
+      style={{ width: '100%', height: '100%', padding: '4px', backgroundColor: '#0d1117' }}
     />
   )
 }
