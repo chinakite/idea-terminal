@@ -42,6 +42,7 @@ export function AiPanel(): JSX.Element {
   const [includeContext, setIncludeContext] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const requestIdRef = useRef<string | null>(null)
+  const streamCleanupRef = useRef<(() => void) | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const agents = useConfigStore((s) => s.config.aiAgents)
@@ -57,6 +58,15 @@ export function AiPanel(): JSX.Element {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    return () => {
+      streamCleanupRef.current?.()
+      if (requestIdRef.current) {
+        window.api.abortAiMessage(requestIdRef.current)
+      }
+    }
+  }, [])
 
   const handleSend = async (): Promise<void> => {
     if (!agentId || !input.trim() || isStreaming || !sessionId) return
@@ -78,24 +88,30 @@ export function AiPanel(): JSX.Element {
 
     const termCtx = includeContext ? getOutput(sessionId) : undefined
 
+    const cleanupRef = { current: () => {} }
+
     const removeChunk = window.api.onAiChunk(requestId, (delta) => {
       appendToLast(sessionId, delta)
     })
     const removeEnd = window.api.onAiEnd(requestId, () => {
       setIsStreaming(false)
       requestIdRef.current = null
-      removeChunk()
-      removeEnd()
-      removeError()
+      cleanupRef.current()
     })
     const removeError = window.api.onAiError(requestId, (error) => {
       appendToLast(sessionId, `\n\n[错误: ${error}]`)
       setIsStreaming(false)
       requestIdRef.current = null
+      cleanupRef.current()
+    })
+
+    cleanupRef.current = () => {
       removeChunk()
       removeEnd()
       removeError()
-    })
+      streamCleanupRef.current = null
+    }
+    streamCleanupRef.current = cleanupRef.current
 
     window.api.sendAiMessage(requestId, agentId, chatMessages, termCtx)
   }
