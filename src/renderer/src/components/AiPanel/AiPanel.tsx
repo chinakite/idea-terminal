@@ -119,6 +119,7 @@ export function AiPanel(): JSX.Element {
   const handleStop = (): void => {
     if (requestIdRef.current) {
       window.api.abortAiMessage(requestIdRef.current)
+      streamCleanupRef.current?.()
       setIsStreaming(false)
       requestIdRef.current = null
     }
