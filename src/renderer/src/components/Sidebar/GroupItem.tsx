@@ -1,5 +1,5 @@
 // src/renderer/src/components/Sidebar/GroupItem.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSplitStore } from '../../store/useSplitStore'
 import { useConfigStore } from '../../store/useConfigStore'
 import { useSessionStore } from '../../store/useSessionStore'
@@ -24,16 +24,17 @@ export function GroupItem({
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(groupName)
 
+  useEffect(() => {
+    setRenameValue(groupName)
+  }, [groupName])
+
   const collectLeaves = useSplitStore((s) => s.collectLeaves)
   const setActivePane = useSplitStore((s) => s.setActivePane)
   const assignSession = useSplitStore((s) => s.assignSession)
-  const activePaneIdFromStore = useSplitStore((s) => s.activePaneId)
   const proxies = useConfigStore((s) => s.config.proxies)
   const renameGroup = useConfigStore((s) => s.renameGroup)
   const removeGroup = useConfigStore((s) => s.removeGroup)
   const closeSession = useSessionStore((s) => s.closeSession)
-
-  const resolvedActivePaneId = activePaneId ?? activePaneIdFromStore
 
   const getProxyName = (proxyId?: string): string | undefined => {
     if (!proxyId) return undefined
@@ -45,8 +46,8 @@ export function GroupItem({
     const existingPane = leaves.find((l) => l.sessionId === sessionId)
     if (existingPane) {
       setActivePane(existingPane.id)
-    } else if (resolvedActivePaneId) {
-      assignSession(resolvedActivePaneId, sessionId)
+    } else if (activePaneId) {
+      assignSession(activePaneId, sessionId)
     }
   }
 
@@ -68,7 +69,7 @@ export function GroupItem({
     removeGroup(groupId)
   }
 
-  const activePaneSessionId = collectLeaves().find((l) => l.id === resolvedActivePaneId)?.sessionId
+  const activePaneSessionId = collectLeaves().find((l) => l.id === activePaneId)?.sessionId
 
   return (
     <div style={{ marginBottom: '4px' }}>
@@ -159,7 +160,7 @@ export function GroupItem({
             <span style={{ color: session.status === 'disconnected' ? '#f85149' : '#64ffda', fontSize: '8px' }}>●</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{session.title}</span>
             {proxyName && (
-              <span style={{ fontSize: '9px', color: '#64ffda', backgroundColor: '#0d2b2b', border: '1px solid #1a5050', borderRadius: '2px', padding: '0 3px', flexShrink: 0, maxWidth: '56px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span title={proxyName} style={{ fontSize: '9px', color: '#64ffda', backgroundColor: '#0d2b2b', border: '1px solid #1a5050', borderRadius: '2px', padding: '0 3px', flexShrink: 0, maxWidth: '56px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {proxyName}
               </span>
             )}

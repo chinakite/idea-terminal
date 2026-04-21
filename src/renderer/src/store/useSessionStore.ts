@@ -43,6 +43,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
     }),
 
   closeSession: (id) => {
+    window.api.destroy(id)
     useSessionStore.getState().removeSession(id)
     useSplitStore.getState().clearSession(id)
   },
