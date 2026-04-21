@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { SplitPane } from './components/Terminal/SplitPane'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
+import { AiPanel } from './components/AiPanel/AiPanel'
 import { useConfigStore } from './store/useConfigStore'
 import { useSplitStore } from './store/useSplitStore'
 
@@ -26,6 +27,8 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  const showEmptyState = panes.every((p) => !p.sessionId) && panes.length === 1
+
   return (
     <div style={{
       display: 'flex',
@@ -36,10 +39,11 @@ export default function App(): JSX.Element {
     }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {panes.every((p) => !p.sessionId) && panes.length === 1 ? (
+        {showEmptyState ? (
           <div style={{
+            flex: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            height: '100%', color: '#768390', fontSize: '14px',
+            color: '#768390', fontSize: '14px',
             flexDirection: 'column', gap: '8px'
           }}>
             <span>点击"＋ 新建终端"开始</span>
@@ -48,6 +52,7 @@ export default function App(): JSX.Element {
         ) : (
           <SplitPane />
         )}
+        <AiPanel />
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
