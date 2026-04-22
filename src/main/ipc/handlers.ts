@@ -84,17 +84,18 @@ export function registerHandlers(
 
   ipcMain.handle(
     'session:save',
-    async (
+    (
       _event,
       snapshots: Array<{ id: string; title: string; groupId: string; proxyId?: string; lastCommands: string[] }>
     ) => {
-      const withCwd = await Promise.all(
-        snapshots.map(async (s) => ({
-          ...s,
-          lastCwd: await ptyManager.getCwd(s.id)
-        }))
-      )
-      await sessionManager.save(withCwd)
+      // Preserve lastCwd from the existing file — CWD is updated at quit time by the main process
+      const existing = sessionManager.load()
+      const cwdMap = new Map(existing.map((s) => [s.id, s.lastCwd]))
+      const withCwd = snapshots.map((s) => ({
+        ...s,
+        lastCwd: cwdMap.get(s.id) ?? ''
+      }))
+      sessionManager.save(withCwd)
     }
   )
 

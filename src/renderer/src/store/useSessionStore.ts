@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import { useSplitStore } from './useSplitStore'
 import { useCommandHistoryStore } from './useCommandHistoryStore'
+import { saveNow } from './persistSessions'
 
 export interface RuntimeSession {
   id: string
@@ -37,11 +38,13 @@ export const useSessionStore = create<SessionStore>((set) => ({
   sessions: [],
   activeSessionId: null,
 
-  addSession: (session) =>
+  addSession: (session) => {
     set((state) => ({
       sessions: [...state.sessions, session],
       activeSessionId: state.activeSessionId ?? session.id
-    })),
+    }))
+    saveNow()
+  },
 
   removeSession: (id) =>
     set((state) => {
@@ -58,6 +61,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
     useSessionStore.getState().removeSession(id)
     useSplitStore.getState().clearSession(id)
     useCommandHistoryStore.getState().clearSession(id)
+    saveNow()
   },
 
   setActive: (id) => set({ activeSessionId: id }),
@@ -67,12 +71,14 @@ export const useSessionStore = create<SessionStore>((set) => ({
       sessions: state.sessions.map((s) => (s.id === id ? { ...s, status: 'disconnected' } : s))
     })),
 
-  renameSession: (id, title) =>
+  renameSession: (id, title) => {
     set((state) => ({
       sessions: state.sessions.map((s) => (s.id === id ? { ...s, title } : s))
-    })),
+    }))
+    saveNow()
+  },
 
-  moveSession: (id, targetGroupId, insertAfterId) =>
+  moveSession: (id, targetGroupId, insertAfterId) => {
     set((state) => {
       const session = state.sessions.find((s) => s.id === id)
       if (!session) return state
@@ -102,4 +108,6 @@ export const useSessionStore = create<SessionStore>((set) => ({
       next.splice(afterIdx + 1, 0, updated)
       return { sessions: next }
     })
+    saveNow()
+  }
 }))
