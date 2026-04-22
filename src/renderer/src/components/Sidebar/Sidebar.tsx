@@ -82,7 +82,7 @@ export function Sidebar(): JSX.Element {
         display: 'flex', alignItems: 'center', gap: '8px'
       }}>
         {/* Terminal-window SVG icon — 22×22, inline, no external file */}
-        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <rect x="1" y="1" width="18" height="18" rx="3" stroke="#e94560" strokeWidth="1.5"/>
           <polyline points="5,7 9,10 5,13" stroke="#e94560" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           <line x1="11" y1="13" x2="15" y2="13" stroke="#e94560" strokeWidth="1.5" strokeLinecap="round"/>
