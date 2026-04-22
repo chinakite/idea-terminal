@@ -1,9 +1,18 @@
 // src/renderer/src/types/api.ts
 import type { AppConfig, AiAgentConfig } from '../../../shared/types'
 
+export interface PersistedSession {
+  id: string
+  title: string
+  groupId: string
+  proxyId?: string
+  lastCwd: string
+  lastCommands: string[]
+}
+
 export interface TerminalAPI {
   // 终端生命周期
-  create: (options: { id: string; cwd: string; proxyId?: string }) => Promise<{ pid: number }>
+  create: (options: { id: string; cwd: string; proxyId?: string; histCommands?: string[] }) => Promise<{ pid: number }>
   destroy: (id: string) => Promise<void>
   write: (id: string, data: string) => void
   resize: (id: string, cols: number, rows: number) => void
@@ -18,6 +27,14 @@ export interface TerminalAPI {
   // 配置
   loadConfig: () => Promise<AppConfig>
   saveConfig: (config: AppConfig) => Promise<void>
+
+  // 会话持久化
+  saveSessionSnapshot: (snapshots: Omit<PersistedSession, 'lastCwd'>[]) => Promise<void>
+  loadSessionSnapshots: () => Promise<PersistedSession[]>
+  /** Listen for the main process about-to-quit signal. Returns unsubscribe fn. */
+  onWillQuit: (callback: () => void) => () => void
+  /** Notify the main process that the renderer has finished saving and it is safe to quit. */
+  notifyQuitReady: () => void
 
   // AI Agent 管理
   saveAiAgent: (

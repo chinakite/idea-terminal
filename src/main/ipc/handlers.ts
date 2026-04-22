@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import type { IDisposable } from 'node-pty'
 import { PtyManager } from '../pty/PtyManager'
 import { ConfigManager } from '../config/ConfigManager'
+import { SessionPersistenceManager } from '../session/SessionPersistenceManager'
 import { AiKeyStore } from '../ai/AiKeyStore'
 import { AiManager, ChatMessage } from '../ai/AiManager'
 import type { AiAgentConfig } from '../../shared/types'
@@ -12,6 +13,7 @@ import { buildProxyEnv } from '../proxy/buildProxyEnv'
 export function registerHandlers(
   ptyManager: PtyManager,
   configManager: ConfigManager,
+  sessionManager: SessionPersistenceManager,
   aiKeyStore: AiKeyStore,
   aiManager: AiManager
 ): void {
@@ -20,7 +22,7 @@ export function registerHandlers(
 
   // ── Terminal ──────────────────────────────────────────────────────────────
 
-  ipcMain.handle('terminal:create', (_event, options: { id: string; cwd: string; proxyId?: string }) => {
+  ipcMain.handle('terminal:create', (_event, options: { id: string; cwd: string; proxyId?: string; histCommands?: string[] }) => {
     const win = BrowserWindow.fromWebContents(_event.sender)
     if (!win) return { pid: -1 }
 
@@ -75,6 +77,26 @@ export function registerHandlers(
   ipcMain.handle('config:load', () => configManager.load())
 
   ipcMain.handle('config:save', (_event, config) => configManager.save(config))
+
+  // ── Session Persistence ────────────────────────────────────────────────────
+
+  ipcMain.handle('session:load', () => sessionManager.load())
+
+  ipcMain.handle(
+    'session:save',
+    async (
+      _event,
+      snapshots: Array<{ id: string; title: string; groupId: string; proxyId?: string; lastCommands: string[] }>
+    ) => {
+      const withCwd = await Promise.all(
+        snapshots.map(async (s) => ({
+          ...s,
+          lastCwd: await ptyManager.getCwd(s.id)
+        }))
+      )
+      sessionManager.save(withCwd)
+    }
+  )
 
   // ── AI Agents ─────────────────────────────────────────────────────────────
 
