@@ -32,7 +32,7 @@ const api: TerminalAPI = {
 
   onWillQuit: (callback) => {
     const handler = (): void => callback()
-    ipcRenderer.on('app:will-quit', handler)
+    ipcRenderer.once('app:will-quit', handler)
     return () => ipcRenderer.removeListener('app:will-quit', handler)
   },
 

@@ -94,7 +94,7 @@ export function registerHandlers(
           lastCwd: await ptyManager.getCwd(s.id)
         }))
       )
-      sessionManager.save(withCwd)
+      await sessionManager.save(withCwd)
     }
   )
 
