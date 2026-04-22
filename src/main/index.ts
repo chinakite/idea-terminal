@@ -1,5 +1,5 @@
 // src/main/index.ts
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { PtyManager } from './pty/PtyManager'
@@ -62,27 +62,23 @@ app.on('before-quit', (event) => {
 
   event.preventDefault()
 
-  const windows = BrowserWindow.getAllWindows()
-  if (windows.length === 0) {
-    // No renderer window to ask — quit immediately
+  const sessions = sessionManager.load()
+  if (sessions.length === 0) {
     isQuitting = true
     app.quit()
     return
   }
 
-  // Timeout guard: if renderer doesn't respond within 2 seconds, quit anyway
-  const timer = setTimeout(() => {
-    isQuitting = true
-    app.quit()
-  }, 2000)
-
-  ipcMain.once('session:quit-ready', () => {
-    clearTimeout(timer)
-    isQuitting = true
-    app.quit()
-  })
-
-  windows[0].webContents.send('app:will-quit')
+  // Update lastCwd for all sessions from live PTY processes, then quit
+  Promise.all(
+    sessions.map(async (s) => ({ ...s, lastCwd: await ptyManager.getCwd(s.id) }))
+  )
+    .then((updated) => sessionManager.save(updated))
+    .catch(() => {})
+    .finally(() => {
+      isQuitting = true
+      app.quit()
+    })
 })
 
 app.on('window-all-closed', () => {

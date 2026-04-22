@@ -30,14 +30,6 @@ const api: TerminalAPI = {
   saveSessionSnapshot: (snapshots) => ipcRenderer.invoke('session:save', snapshots),
   loadSessionSnapshots: () => ipcRenderer.invoke('session:load'),
 
-  onWillQuit: (callback) => {
-    const handler = (): void => callback()
-    ipcRenderer.once('app:will-quit', handler)
-    return () => ipcRenderer.removeListener('app:will-quit', handler)
-  },
-
-  notifyQuitReady: () => ipcRenderer.send('session:quit-ready'),
-
   saveAiAgent: (agent) => ipcRenderer.invoke('ai:save-agent', agent),
   deleteAiAgent: (id) => ipcRenderer.invoke('ai:delete-agent', id),
 

@@ -31,10 +31,6 @@ export interface TerminalAPI {
   // 会话持久化
   saveSessionSnapshot: (snapshots: Omit<PersistedSession, 'lastCwd'>[]) => Promise<void>
   loadSessionSnapshots: () => Promise<PersistedSession[]>
-  /** Listen for the main process about-to-quit signal. Returns unsubscribe fn. */
-  onWillQuit: (callback: () => void) => () => void
-  /** Notify the main process that the renderer has finished saving and it is safe to quit. */
-  notifyQuitReady: () => void
 
   // AI Agent 管理
   saveAiAgent: (
