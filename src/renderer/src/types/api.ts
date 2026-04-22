@@ -45,4 +45,6 @@ declare global {
   interface Window {
     api: TerminalAPI
   }
+  // Injected at build time via Vite define — always matches package.json version
+  const __APP_VERSION__: string
 }
