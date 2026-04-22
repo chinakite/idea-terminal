@@ -6,16 +6,82 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { AiPanel } from './components/AiPanel/AiPanel'
 import { useConfigStore } from './store/useConfigStore'
 import { useSplitStore } from './store/useSplitStore'
+import { useSessionStore } from './store/useSessionStore'
+import { useCommandHistoryStore } from './store/useCommandHistoryStore'
 
 export default function App(): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const loadConfig = useConfigStore((s) => s.load)
   const leaves = useSplitStore((s) => s.collectLeaves())
 
+  // ── Init: load config then restore persisted sessions ─────────────────────
   useEffect(() => {
-    loadConfig()
+    const init = async (): Promise<void> => {
+      await loadConfig()
+
+      const snapshots = await window.api.loadSessionSnapshots()
+      if (snapshots.length === 0) return
+
+      const { addSession } = useSessionStore.getState()
+      const { activePaneId, assignSession } = useSplitStore.getState()
+      const validGroupIds = new Set(
+        useConfigStore.getState().config.groups.map((g) => g.id)
+      )
+      validGroupIds.add('default')
+
+      let firstSessionId: string | null = null
+      for (const snap of snapshots) {
+        try {
+          const groupId = validGroupIds.has(snap.groupId) ? snap.groupId : 'default'
+          const { pid } = await window.api.create({
+            id: snap.id,
+            cwd: snap.lastCwd,
+            histCommands: snap.lastCommands
+          })
+          addSession({
+            id: snap.id,
+            title: snap.title,
+            groupId,
+            pid,
+            status: 'running',
+            proxyId: snap.proxyId
+          })
+          if (!firstSessionId) firstSessionId = snap.id
+        } catch {
+          // Skip sessions that fail to restore (e.g. lastCwd no longer exists)
+        }
+      }
+
+      if (firstSessionId && activePaneId) {
+        assignSession(activePaneId, firstSessionId)
+      }
+    }
+
+    init().catch(console.error)
   }, [loadConfig])
 
+  // ── Will-quit: save sessions before the app closes ────────────────────────
+  useEffect(() => {
+    const unsubscribe = window.api.onWillQuit(async () => {
+      const sessions = useSessionStore.getState().sessions
+      const history = useCommandHistoryStore.getState().history
+      const snapshots = sessions.map((s) => ({
+        id: s.id,
+        title: s.title,
+        groupId: s.groupId,
+        proxyId: s.proxyId,
+        lastCommands: history[s.id] ?? []
+      }))
+      try {
+        await window.api.saveSessionSnapshot(snapshots)
+      } finally {
+        window.api.notifyQuitReady()
+      }
+    })
+    return unsubscribe
+  }, [])
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
