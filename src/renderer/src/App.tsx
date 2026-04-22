@@ -6,8 +6,6 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { AiPanel } from './components/AiPanel/AiPanel'
 import { useConfigStore } from './store/useConfigStore'
 import { useSplitStore } from './store/useSplitStore'
-import { useSessionStore } from './store/useSessionStore'
-import { useCommandHistoryStore } from './store/useCommandHistoryStore'
 
 export default function App(): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -59,27 +57,6 @@ export default function App(): JSX.Element {
 
     init().catch(console.error)
   }, [loadConfig])
-
-  // ── Will-quit: save sessions before the app closes ────────────────────────
-  useEffect(() => {
-    const unsubscribe = window.api.onWillQuit(async () => {
-      const sessions = useSessionStore.getState().sessions
-      const history = useCommandHistoryStore.getState().history
-      const snapshots = sessions.map((s) => ({
-        id: s.id,
-        title: s.title,
-        groupId: s.groupId,
-        proxyId: s.proxyId,
-        lastCommands: history[s.id] ?? []
-      }))
-      try {
-        await window.api.saveSessionSnapshot(snapshots)
-      } finally {
-        window.api.notifyQuitReady()
-      }
-    })
-    return unsubscribe
-  }, [])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
