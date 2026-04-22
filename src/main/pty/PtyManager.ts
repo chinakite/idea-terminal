@@ -1,9 +1,12 @@
 // src/main/pty/PtyManager.ts
 import * as pty from 'node-pty'
-import { execSync } from 'child_process'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { realpathSync, writeFileSync, unlinkSync } from 'fs'
 import { homedir, platform, tmpdir } from 'os'
 import { join } from 'path'
+
+const execFileAsync = promisify(execFile)
 
 export interface PtySession {
   id: string
@@ -32,8 +35,8 @@ export class PtyManager {
     let extraEnv: Record<string, string> = {}
     if (options.histCommands && options.histCommands.length > 0) {
       const histFile = join(tmpdir(), `idea-terminal-hist-${options.id}`)
-      writeFileSync(histFile, options.histCommands.join('\n'), 'utf-8')
-      extraEnv = { HISTFILE: histFile, HISTSIZE: '1000', HISTFILESIZE: '1000' }
+      writeFileSync(histFile, options.histCommands.join('\n') + '\n', 'utf-8')
+      extraEnv = { HISTFILE: histFile, HISTSIZE: '1000', HISTFILESIZE: '1000', SAVEHIST: '1000' }
       this.histFiles.set(options.id, histFile)
     }
 
@@ -91,16 +94,14 @@ export class PtyManager {
     const { pid } = session
     try {
       if (platform() === 'darwin') {
-        const result = execSync(
-          `lsof -p ${pid} -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//'`,
-          { encoding: 'utf-8' }
-        ).trim()
-        return result || homedir()
+        const { stdout } = await execFileAsync('lsof', ['-p', String(pid), '-a', '-d', 'cwd', '-Fn'])
+        const line = stdout.split('\n').find((l) => l.startsWith('n'))
+        return line ? line.slice(1).trim() : homedir()
       } else if (platform() === 'linux') {
         return realpathSync(`/proc/${pid}/cwd`)
       }
     } catch {
-      // fallthrough to homedir
+      // Process exited or platform unsupported — fall back
     }
     return homedir()
   }

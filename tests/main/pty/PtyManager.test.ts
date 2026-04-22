@@ -1,6 +1,9 @@
 // tests/main/pty/PtyManager.test.ts
 import { describe, it, expect, afterEach } from 'vitest'
 import { PtyManager } from '../../../src/main/pty/PtyManager'
+import { existsSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 describe('PtyManager', () => {
   const manager = new PtyManager()
@@ -62,27 +65,26 @@ describe('PtyManager', () => {
     expect(cwd).toBe(homedir())
   })
 
-  it('getCwd returns a non-empty string for a live session', async () => {
+  it('getCwd returns the working directory for a live session', async () => {
     manager.create({ id: 's-cwd', cwd: process.cwd() })
     const cwd = await manager.getCwd('s-cwd')
     expect(typeof cwd).toBe('string')
     expect(cwd.length).toBeGreaterThan(0)
+    // Should be the cwd we launched with, or a valid fallback (homedir)
+    const { homedir } = await import('os')
+    expect([process.cwd(), homedir()]).toContain(cwd)
   })
 
   it('create with histCommands writes a temp HISTFILE', () => {
-    const { existsSync } = require('fs')
-    const { join } = require('path')
-    const { tmpdir } = require('os')
+    const histPath = join(tmpdir(), 'idea-terminal-hist-s-hist')
     manager.create({ id: 's-hist', cwd: process.cwd(), histCommands: ['ls', 'pwd'] })
-    expect(existsSync(join(tmpdir(), 'idea-terminal-hist-s-hist'))).toBe(true)
+    expect(existsSync(histPath)).toBe(true)
   })
 
   it('destroy cleans up the temp HISTFILE', () => {
-    const { existsSync } = require('fs')
-    const { join } = require('path')
-    const { tmpdir } = require('os')
+    const histPath = join(tmpdir(), 'idea-terminal-hist-s-hist2')
     manager.create({ id: 's-hist2', cwd: process.cwd(), histCommands: ['ls'] })
     manager.destroy('s-hist2')
-    expect(existsSync(join(tmpdir(), 'idea-terminal-hist-s-hist2'))).toBe(false)
+    expect(existsSync(histPath)).toBe(false)
   })
 })
