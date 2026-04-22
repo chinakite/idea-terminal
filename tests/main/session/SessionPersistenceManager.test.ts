@@ -53,4 +53,22 @@ describe('SessionPersistenceManager', () => {
     expect(manager.load()).toEqual([])
     expect(existsSync(join(tmpDir, 'sessions.json.bak'))).toBe(true)
   })
+
+  it('filters out sessions missing required fields', () => {
+    writeFileSync(
+      join(tmpDir, 'sessions.json'),
+      JSON.stringify({ version: 1, sessions: [{ id: 'x' }, sample] })
+    )
+    const loaded = manager.load()
+    expect(loaded).toHaveLength(1)
+    expect(loaded[0].id).toBe('abc123')
+  })
+
+  it('returns empty array when sessions is not an array', () => {
+    writeFileSync(
+      join(tmpDir, 'sessions.json'),
+      JSON.stringify({ version: 1, sessions: 'corrupt' })
+    )
+    expect(manager.load()).toEqual([])
+  })
 })

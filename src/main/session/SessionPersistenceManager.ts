@@ -28,10 +28,22 @@ export class SessionPersistenceManager {
     try {
       const raw = readFileSync(this.filePath, 'utf-8')
       const parsed = JSON.parse(raw) as SessionSnapshot
-      return Array.isArray(parsed.sessions) ? parsed.sessions : []
+      if (!Array.isArray(parsed.sessions)) return []
+      return parsed.sessions.filter(
+        (s) =>
+          s &&
+          typeof s.id === 'string' &&
+          typeof s.title === 'string' &&
+          typeof s.groupId === 'string' &&
+          typeof s.lastCwd === 'string' &&
+          Array.isArray(s.lastCommands)
+      )
     } catch {
-      const backupPath = this.filePath + '.bak'
-      copyFileSync(this.filePath, backupPath)
+      try {
+        copyFileSync(this.filePath, this.filePath + '.bak')
+      } catch {
+        // Backup failed (e.g. permission error) — proceed without backup
+      }
       return []
     }
   }
