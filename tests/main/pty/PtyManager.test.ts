@@ -55,4 +55,34 @@ describe('PtyManager', () => {
     expect(disposable).toBeDefined()
     expect(typeof disposable?.dispose).toBe('function')
   })
+
+  it('getCwd returns homedir for unknown session id', async () => {
+    const { homedir } = await import('os')
+    const cwd = await manager.getCwd('nonexistent')
+    expect(cwd).toBe(homedir())
+  })
+
+  it('getCwd returns a non-empty string for a live session', async () => {
+    manager.create({ id: 's-cwd', cwd: process.cwd() })
+    const cwd = await manager.getCwd('s-cwd')
+    expect(typeof cwd).toBe('string')
+    expect(cwd.length).toBeGreaterThan(0)
+  })
+
+  it('create with histCommands writes a temp HISTFILE', () => {
+    const { existsSync } = require('fs')
+    const { join } = require('path')
+    const { tmpdir } = require('os')
+    manager.create({ id: 's-hist', cwd: process.cwd(), histCommands: ['ls', 'pwd'] })
+    expect(existsSync(join(tmpdir(), 'idea-terminal-hist-s-hist'))).toBe(true)
+  })
+
+  it('destroy cleans up the temp HISTFILE', () => {
+    const { existsSync } = require('fs')
+    const { join } = require('path')
+    const { tmpdir } = require('os')
+    manager.create({ id: 's-hist2', cwd: process.cwd(), histCommands: ['ls'] })
+    manager.destroy('s-hist2')
+    expect(existsSync(join(tmpdir(), 'idea-terminal-hist-s-hist2'))).toBe(false)
+  })
 })
