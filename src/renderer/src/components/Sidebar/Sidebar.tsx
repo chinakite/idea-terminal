@@ -76,11 +76,30 @@ export function Sidebar(): JSX.Element {
       width: '200px', height: '100%', backgroundColor: '#16213e',
       borderRight: '1px solid #0f3460', display: 'flex', flexDirection: 'column', flexShrink: 0
     }}>
+      {/* ── Logo header ── */}
       <div style={{
-        padding: '12px', color: '#e94560', fontWeight: 'bold',
-        fontSize: '12px', letterSpacing: '1px', borderBottom: '1px solid #0f3460'
+        padding: '10px 12px', borderBottom: '1px solid #0f3460',
+        display: 'flex', alignItems: 'center', gap: '8px'
       }}>
-        IDEA TERMINAL
+        {/* Terminal-window SVG icon — 22×22, inline, no external file */}
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="18" height="18" rx="3" stroke="#e94560" strokeWidth="1.5"/>
+          <polyline points="5,7 9,10 5,13" stroke="#e94560" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <line x1="11" y1="13" x2="15" y2="13" stroke="#e94560" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        {/* Stacked two-line name */}
+        <div style={{ flex: 1 }}>
+          <div style={{ color: '#e94560', fontWeight: 700, fontSize: '11px', letterSpacing: '1.5px', lineHeight: 1.3 }}>
+            IDEA
+          </div>
+          <div style={{ color: '#a8b2d8', fontSize: '9px', letterSpacing: '2px', opacity: 0.7 }}>
+            TERMINAL
+          </div>
+        </div>
+        {/* Version — bottom-right corner of the header block */}
+        <div style={{ fontFamily: 'monospace', fontSize: '8px', color: '#484f58', alignSelf: 'flex-end', paddingBottom: '1px' }}>
+          v{__APP_VERSION__}
+        </div>
       </div>
 
       <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
