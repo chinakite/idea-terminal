@@ -5,6 +5,7 @@ import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import { useSessionStore } from '../../store/useSessionStore'
 import { useTerminalOutputStore } from '../../store/useTerminalOutputStore'
+import { useCommandHistoryStore } from '../../store/useCommandHistoryStore'
 import 'xterm/css/xterm.css'
 
 interface TerminalPaneProps {
@@ -64,7 +65,23 @@ export function TerminalPane({
     termRef.current = term
     fitAddonRef.current = fitAddon
 
-    const disposeInput = term.onData((data) => window.api.write(sessionId, data))
+    // Command tracking: intercept keystrokes to record commands in history
+    let lineBuffer = ''
+    const addCommand = useCommandHistoryStore.getState().addCommand
+    const disposeInput = term.onData((data) => {
+      window.api.write(sessionId, data)
+      if (data === '\r') {
+        const cmd = lineBuffer.trim()
+        if (cmd) addCommand(sessionId, cmd)
+        lineBuffer = ''
+      } else if (data === '\x7f') {
+        // Backspace
+        lineBuffer = lineBuffer.slice(0, -1)
+      } else if (!data.startsWith('\x1b') && data.length === 1) {
+        // Printable character (ignore ANSI escape sequences like arrow keys)
+        lineBuffer += data
+      }
+    })
     const removeData = window.api.onData(sessionId, (data) => {
       term.write(data)
       useTerminalOutputStore.getState().appendData(sessionId, data)

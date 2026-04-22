@@ -1,6 +1,7 @@
 // src/renderer/src/store/useSessionStore.ts
 import { create } from 'zustand'
 import { useSplitStore } from './useSplitStore'
+import { useCommandHistoryStore } from './useCommandHistoryStore'
 
 export interface RuntimeSession {
   id: string
@@ -56,6 +57,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
     window.api.destroy(id)
     useSessionStore.getState().removeSession(id)
     useSplitStore.getState().clearSession(id)
+    useCommandHistoryStore.getState().clearSession(id)
   },
 
   setActive: (id) => set({ activeSessionId: id }),
