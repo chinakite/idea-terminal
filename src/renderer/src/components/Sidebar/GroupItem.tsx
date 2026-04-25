@@ -67,6 +67,7 @@ export function GroupItem({
   const collectLeaves = useSplitStore((s) => s.collectLeaves)
   const setActivePane = useSplitStore((s) => s.setActivePane)
   const assignSession = useSplitStore((s) => s.assignSession)
+  const clearSession = useSplitStore((s) => s.clearSession)
   const proxies = useConfigStore((s) => s.config.proxies)
   const renameGroup = useConfigStore((s) => s.renameGroup)
   const removeGroup = useConfigStore((s) => s.removeGroup)
@@ -79,6 +80,27 @@ export function GroupItem({
     proxyId ? proxies.find((p) => p.id === proxyId)?.name : undefined
 
   const activePaneSessionId = collectLeaves().find((l) => l.id === activePaneId)?.sessionId
+
+  const handleCloseSession = async (session: RuntimeSession): Promise<void> => {
+    const leaves = collectLeaves()
+    const pane = leaves.find((l) => l.sessionId === session.id)
+    const remaining = useSessionStore.getState().sessions.filter((s) => s.id !== session.id)
+
+    if (pane) {
+      if (remaining.length > 0) {
+        // Prefer adjacent session in the same group, fall back to any remaining
+        const currentIdx = sessions.findIndex((s) => s.id === session.id)
+        const nextInGroup = sessions[currentIdx + 1] ?? sessions[currentIdx - 1]
+        const next = nextInGroup ?? remaining[0]
+        assignSession(pane.id, next.id)
+      } else {
+        clearSession(session.id)
+      }
+    }
+
+    await window.api.destroy(session.id)
+    closeSession(session.id)
+  }
 
   // ── Session click ──────────────────────────────────────────────────────────
   const handleSessionClick = (sessionId: string): void => {
@@ -327,25 +349,43 @@ export function GroupItem({
               </span>
             )}
 
-            {/* ✏ icon — visible on hover when not in rename mode */}
+            {/* ✏ and × icons — visible on hover when not in rename mode */}
             {isHovered && !isRenamingThis && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setRenamingSessionId(session.id)
-                  setSessionRenameValue(session.title)
-                }}
-                title="重命名终端"
-                style={{
-                  background: 'none', border: 'none', color: '#484f58',
-                  cursor: 'pointer', fontSize: '11px', padding: '0 1px',
-                  lineHeight: 1, flexShrink: 0
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#cdd9e5')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#484f58')}
-              >
-                ✏
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRenamingSessionId(session.id)
+                    setSessionRenameValue(session.title)
+                  }}
+                  title="重命名终端"
+                  style={{
+                    background: 'none', border: 'none', color: '#484f58',
+                    cursor: 'pointer', fontSize: '11px', padding: '0 1px',
+                    lineHeight: 1, flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#cdd9e5')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = '#484f58')}
+                >
+                  ✏
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleCloseSession(session).catch(console.error)
+                  }}
+                  title="关闭终端"
+                  style={{
+                    background: 'none', border: 'none', color: '#484f58',
+                    cursor: 'pointer', fontSize: '13px', padding: '0 1px',
+                    lineHeight: 1, flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#f85149')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = '#484f58')}
+                >
+                  ×
+                </button>
+              </>
             )}
 
             {proxyName && !isRenamingThis && (
