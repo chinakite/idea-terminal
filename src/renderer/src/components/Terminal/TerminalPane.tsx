@@ -128,7 +128,7 @@ export function TerminalPane({
           const notification = new Notification('IDEA Terminal', {
             body: `终端「${session.title}」需要您的操作`
           })
-          notificationCooldowns.set(sessionId, Date.now())
+          notificationCooldowns.set(sessionId, now)
           notification.onclick = () => {
             window.focus()
             const leaves = useSplitStore.getState().collectLeaves()
@@ -191,6 +191,10 @@ export function TerminalPane({
   useEffect(() => {
     isActiveRef.current = isActive
     if (isActive) {
+      if (quietTimerRef.current !== null) {
+        clearTimeout(quietTimerRef.current)
+        quietTimerRef.current = null
+      }
       fit()
       termRef.current?.focus()
       useActivityStore.getState().clearActivity(sessionId)
