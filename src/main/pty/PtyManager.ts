@@ -2,7 +2,7 @@
 import * as pty from 'node-pty'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { realpathSync, writeFileSync, unlinkSync } from 'fs'
+import { realpathSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'fs'
 import { homedir, platform, tmpdir } from 'os'
 import { join } from 'path'
 
@@ -28,6 +28,8 @@ export class PtyManager {
   private sessions = new Map<string, PtySession>()
   /** Tracks temp history files so they can be cleaned up on destroy */
   private histFiles = new Map<string, string>()
+  /** Tracks per-session ZDOTDIR temp directories for cleanup */
+  private zdotDirs = new Map<string, string>()
 
   create(options: CreateOptions): { pid: number } {
     const shell = platform() === 'win32' ? 'powershell.exe' : (process.env.SHELL ?? '/bin/zsh')
@@ -36,11 +38,45 @@ export class PtyManager {
     if (options.histCommands && options.histCommands.length > 0) {
       const histFile = join(tmpdir(), `idea-terminal-hist-${options.id}`)
       writeFileSync(histFile, options.histCommands.join('\n') + '\n', 'utf-8')
-      extraEnv = { HISTFILE: histFile, HISTSIZE: '1000', HISTFILESIZE: '1000', SAVEHIST: '1000' }
       this.histFiles.set(options.id, histFile)
+
+      const isZsh = platform() !== 'win32' && (shell.endsWith('/zsh') || shell === 'zsh')
+      if (isZsh) {
+        const zdotDir = join(tmpdir(), `idea-terminal-zdot-${options.id}`)
+        mkdirSync(zdotDir, { recursive: true })
+        writeFileSync(join(zdotDir, '.zshenv'), '[ -f "$HOME/.zshenv" ] && source "$HOME/.zshenv"\n', 'utf-8')
+        writeFileSync(join(zdotDir, '.zprofile'), '[ -f "$HOME/.zprofile" ] && source "$HOME/.zprofile"\n', 'utf-8')
+        writeFileSync(
+          join(zdotDir, '.zshrc'),
+          [
+            '[ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc"',
+            'HISTFILE="$_IDEA_HISTFILE"',
+            'unsetopt SHARE_HISTORY 2>/dev/null',
+            'unsetopt INC_APPEND_HISTORY 2>/dev/null',
+            'HISTSIZE=1000',
+            'SAVEHIST=1000',
+            '[ -s "$HISTFILE" ] && fc -R "$HISTFILE"',
+            ''
+          ].join('\n'),
+          'utf-8'
+        )
+        this.zdotDirs.set(options.id, zdotDir)
+        extraEnv = {
+          HISTFILE: histFile,
+          HISTSIZE: '1000',
+          HISTFILESIZE: '1000',
+          SAVEHIST: '1000',
+          ZDOTDIR: zdotDir,
+          _IDEA_HISTFILE: histFile
+        }
+      } else {
+        extraEnv = { HISTFILE: histFile, HISTSIZE: '1000', HISTFILESIZE: '1000', SAVEHIST: '1000' }
+      }
     }
 
-    const ptyProcess = pty.spawn(shell, [], {
+    // Use login shell so it sources ~/.zshrc / ~/.zprofile and gets the full PATH
+    const shellArgs = platform() === 'win32' ? [] : ['-l']
+    const ptyProcess = pty.spawn(shell, shellArgs, {
       name: 'xterm-256color',
       cols: options.cols ?? 80,
       rows: options.rows ?? 24,
@@ -77,6 +113,11 @@ export class PtyManager {
     if (histFile) {
       try { unlinkSync(histFile) } catch { /* already gone */ }
       this.histFiles.delete(id)
+    }
+    const zdotDir = this.zdotDirs.get(id)
+    if (zdotDir) {
+      try { rmSync(zdotDir, { recursive: true, force: true }) } catch { /* already gone */ }
+      this.zdotDirs.delete(id)
     }
   }
 

@@ -87,4 +87,34 @@ describe('PtyManager', () => {
     manager.destroy('s-hist2')
     expect(existsSync(histPath)).toBe(false)
   })
+
+  // ── ZDOTDIR isolation (zsh only) ─────────────────────────────────────────────
+  const isZsh = (process.env.SHELL ?? '').endsWith('zsh') && process.platform !== 'win32'
+
+  it.skipIf(!isZsh)('create with histCommands creates ZDOTDIR with wrapper files', () => {
+    const zdotDir = join(tmpdir(), 'idea-terminal-zdot-s-zdot')
+    manager.create({ id: 's-zdot', cwd: process.cwd(), histCommands: ['ls', 'pwd'] })
+    expect(existsSync(zdotDir)).toBe(true)
+    expect(existsSync(join(zdotDir, '.zshenv'))).toBe(true)
+    expect(existsSync(join(zdotDir, '.zprofile'))).toBe(true)
+    expect(existsSync(join(zdotDir, '.zshrc'))).toBe(true)
+  })
+
+  it.skipIf(!isZsh)('destroy cleans up the ZDOTDIR', () => {
+    const zdotDir = join(tmpdir(), 'idea-terminal-zdot-s-zdot2')
+    manager.create({ id: 's-zdot2', cwd: process.cwd(), histCommands: ['ls'] })
+    manager.destroy('s-zdot2')
+    expect(existsSync(zdotDir)).toBe(false)
+  })
+
+  it.skipIf(!isZsh)('.zshrc wrapper contains HISTFILE override and fc -R', () => {
+    const zdotDir = join(tmpdir(), 'idea-terminal-zdot-s-zdot3')
+    manager.create({ id: 's-zdot3', cwd: process.cwd(), histCommands: ['echo hello'] })
+    const { readFileSync } = require('fs')
+    const zshrc = readFileSync(join(zdotDir, '.zshrc'), 'utf-8')
+    expect(zshrc).toContain('source "$HOME/.zshrc"')
+    expect(zshrc).toContain('HISTFILE="$_IDEA_HISTFILE"')
+    expect(zshrc).toContain('unsetopt SHARE_HISTORY')
+    expect(zshrc).toContain('fc -R "$HISTFILE"')
+  })
 })
