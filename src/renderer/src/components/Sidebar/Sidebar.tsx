@@ -39,7 +39,16 @@ export function Sidebar(): JSX.Element {
       const proxyId = selectedProxyId || undefined
       const { pid } = await window.api.create({ id, cwd: homedir, proxyId })
       const sessionNum = sessions.length + 1
-      addSession({ id, title: `终端 ${sessionNum}`, groupId: 'default', pid, status: 'running', proxyId })
+
+      // Create in the active session's group; fall back to 'default' if none or invalid
+      const activeSessionId = collectLeaves().find((l) => l.id === activePaneId)?.sessionId
+      const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : undefined
+      const validGroupIds = new Set(['default', ...groups.map((g) => g.id)])
+      const groupId = activeSession && validGroupIds.has(activeSession.groupId)
+        ? activeSession.groupId
+        : 'default'
+
+      addSession({ id, title: `终端 ${sessionNum}`, groupId, pid, status: 'running', proxyId })
 
       const leaves = collectLeaves()
       const emptyPane = leaves.find((l) => !l.sessionId)
