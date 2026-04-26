@@ -44,6 +44,8 @@ export function TerminalPane({
   const isActiveRef = useRef(isActive)
   /** Timer ID for the 2-second quiet period before firing a notification. */
   const quietTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** True once this pane has been active at least once. Prevents startup output from triggering activity dots on sessions the user hasn't visited yet. */
+  const hasBeenActiveRef = useRef(false)
 
   const fit = useCallback(() => {
     if (!fitAddonRef.current || !termRef.current) return
@@ -55,6 +57,9 @@ export function TerminalPane({
   // Mount xterm once per sessionId
   useEffect(() => {
     if (!containerRef.current) return
+
+    // Reset "has been active" state for this new session assignment
+    hasBeenActiveRef.current = false
 
     const term = new Terminal({
       cursorBlink: true,
@@ -102,8 +107,8 @@ export function TerminalPane({
       term.write(data)
       useTerminalOutputStore.getState().appendData(sessionId, data)
 
-      // Activity detection: only for non-active panes
-      if (!isActiveRef.current) {
+      // Activity detection: only for non-active panes that have been seen before
+      if (!isActiveRef.current && hasBeenActiveRef.current) {
         useActivityStore.getState().markActivity(sessionId)
 
         // Reset the quiet-period timer on every new chunk of output
@@ -191,6 +196,7 @@ export function TerminalPane({
   useEffect(() => {
     isActiveRef.current = isActive
     if (isActive) {
+      hasBeenActiveRef.current = true
       if (quietTimerRef.current !== null) {
         clearTimeout(quietTimerRef.current)
         quietTimerRef.current = null
