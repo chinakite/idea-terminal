@@ -123,7 +123,8 @@ export function TerminalPane({
           const lastNotified = notificationCooldowns.get(sessionId) ?? 0
           if (now - lastNotified < COOLDOWN_MS) return
 
-          // Send system notification
+          // Send system notification (only if permission is granted)
+          if (Notification.permission !== 'granted') return
           notificationCooldowns.set(sessionId, now)
           const notification = new Notification('IDEA Terminal', {
             body: `终端「${session.title}」需要您的操作`
@@ -162,6 +163,9 @@ export function TerminalPane({
     })
     cleanupRef.current.push(() => {
       useActivityStore.getState().clearActivity(sessionId)
+    })
+    cleanupRef.current.push(() => {
+      notificationCooldowns.delete(sessionId)
     })
 
     // Guard: only fit when the container has non-zero dimensions
