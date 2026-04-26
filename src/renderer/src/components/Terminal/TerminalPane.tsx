@@ -6,8 +6,15 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import { useSessionStore } from '../../store/useSessionStore'
 import { useTerminalOutputStore } from '../../store/useTerminalOutputStore'
 import { useCommandHistoryStore } from '../../store/useCommandHistoryStore'
+import { useActivityStore } from '../../store/useActivityStore'
+import { useSplitStore } from '../../store/useSplitStore'
 import { scheduleSave } from '../../store/persistSessions'
 import 'xterm/css/xterm.css'
+
+/** Prevents re-notifying the same session within 30 seconds. */
+const notificationCooldowns = new Map<string, number>()
+const COOLDOWN_MS = 30_000
+const QUIET_PERIOD_MS = 2_000
 
 interface TerminalPaneProps {
   sessionId: string
@@ -32,6 +39,11 @@ export function TerminalPane({
   const fitAddonRef = useRef<FitAddon | null>(null)
   const cleanupRef = useRef<(() => void)[]>([])
   const markDisconnected = useSessionStore((s) => s.markDisconnected)
+
+  /** Keeps isActive current inside the onData closure (avoids stale closure). */
+  const isActiveRef = useRef(isActive)
+  /** Timer ID for the 2-second quiet period before firing a notification. */
+  const quietTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fit = useCallback(() => {
     if (!fitAddonRef.current || !termRef.current) return
@@ -89,6 +101,46 @@ export function TerminalPane({
     const removeData = window.api.onData(sessionId, (data) => {
       term.write(data)
       useTerminalOutputStore.getState().appendData(sessionId, data)
+
+      // Activity detection: only for non-active panes
+      if (!isActiveRef.current) {
+        useActivityStore.getState().markActivity(sessionId)
+
+        // Reset the quiet-period timer on every new chunk of output
+        if (quietTimerRef.current !== null) clearTimeout(quietTimerRef.current)
+        quietTimerRef.current = setTimeout(() => {
+          quietTimerRef.current = null
+
+          // Skip if the app window is focused
+          if (document.hasFocus()) return
+
+          // Skip if the session no longer exists
+          const session = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
+          if (!session) return
+
+          // Skip if within the 30-second cooldown
+          const now = Date.now()
+          const lastNotified = notificationCooldowns.get(sessionId) ?? 0
+          if (now - lastNotified < COOLDOWN_MS) return
+
+          // Send system notification
+          notificationCooldowns.set(sessionId, now)
+          const notification = new Notification('IDEA Terminal', {
+            body: `终端「${session.title}」需要您的操作`
+          })
+          notification.onclick = () => {
+            window.focus()
+            const leaves = useSplitStore.getState().collectLeaves()
+            const existingPane = leaves.find((l) => l.sessionId === sessionId)
+            if (existingPane) {
+              useSplitStore.getState().setActivePane(existingPane.id)
+            } else {
+              const { activePaneId, assignSession } = useSplitStore.getState()
+              if (activePaneId) assignSession(activePaneId, sessionId)
+            }
+          }
+        }, QUIET_PERIOD_MS)
+      }
     })
     const removeExit = window.api.onExit(sessionId, () => {
       term.write('\r\n\x1b[33m[进程已退出]\x1b[0m\r\n')
@@ -101,6 +153,16 @@ export function TerminalPane({
       removeExit,
       () => term.dispose()
     ]
+
+    cleanupRef.current.push(() => {
+      if (quietTimerRef.current !== null) {
+        clearTimeout(quietTimerRef.current)
+        quietTimerRef.current = null
+      }
+    })
+    cleanupRef.current.push(() => {
+      useActivityStore.getState().clearActivity(sessionId)
+    })
 
     // Guard: only fit when the container has non-zero dimensions
     // Use the `fit` callback (not fitAddon.fit directly) so PTY receives updated dimensions
@@ -120,13 +182,16 @@ export function TerminalPane({
     }
   }, [sessionId])
 
-  // Focus and fit when this pane becomes active
+  // Sync ref so the onData closure always sees the current value
+  // Focus and fit when this pane becomes active; clear the activity dot
   useEffect(() => {
+    isActiveRef.current = isActive
     if (isActive) {
       fit()
       termRef.current?.focus()
+      useActivityStore.getState().clearActivity(sessionId)
     }
-  }, [isActive, fit])
+  }, [isActive, fit, sessionId])
 
   // Wire keyboard shortcuts via xterm's customKeyEventHandler
   useEffect(() => {
