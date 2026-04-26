@@ -87,7 +87,8 @@ export function GroupItem({
   const closeSession = useSessionStore((s) => s.closeSession)
   const renameSession = useSessionStore((s) => s.renameSession)
   const moveSession = useSessionStore((s) => s.moveSession)
-  const hasActivity = useActivityStore((s) => s.hasActivity)
+  const unread = useActivityStore((s) => s.unread)
+  const hasActivity = (sessionId: string): boolean => !!unread[sessionId]
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getProxyName = (proxyId?: string): string | undefined =>
