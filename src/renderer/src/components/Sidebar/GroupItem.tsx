@@ -3,7 +3,21 @@ import { useState, useEffect } from 'react'
 import { useSplitStore } from '../../store/useSplitStore'
 import { useConfigStore } from '../../store/useConfigStore'
 import { useSessionStore } from '../../store/useSessionStore'
+import { useActivityStore } from '../../store/useActivityStore'
 import type { RuntimeSession } from '../../store/useSessionStore'
+
+// Inject the pulse keyframe once into the document head
+if (typeof document !== 'undefined' && !document.getElementById('activity-pulse-style')) {
+  const style = document.createElement('style')
+  style.id = 'activity-pulse-style'
+  style.textContent = `
+    @keyframes activityPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+  `
+  document.head.appendChild(style)
+}
 
 interface GroupItemProps {
   groupId: string
@@ -73,6 +87,7 @@ export function GroupItem({
   const closeSession = useSessionStore((s) => s.closeSession)
   const renameSession = useSessionStore((s) => s.renameSession)
   const moveSession = useSessionStore((s) => s.moveSession)
+  const hasActivity = useActivityStore((s) => s.hasActivity)
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getProxyName = (proxyId?: string): string | undefined =>
@@ -323,6 +338,20 @@ export function GroupItem({
             }}
           >
             <span style={{ color: session.status === 'disconnected' ? '#f85149' : '#64ffda', fontSize: '8px', flexShrink: 0 }}>●</span>
+
+            {hasActivity(session.id) && (
+              <span
+                style={{
+                  color: '#ff8c00',
+                  fontSize: '8px',
+                  flexShrink: 0,
+                  animation: 'activityPulse 1.2s ease-in-out infinite'
+                }}
+                title="需要您的操作"
+              >
+                ●
+              </span>
+            )}
 
             {isRenamingThis ? (
               <input
