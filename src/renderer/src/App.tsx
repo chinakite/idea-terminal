@@ -1,19 +1,25 @@
 // src/renderer/src/App.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { SplitPane } from './components/Terminal/SplitPane'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { AiPanel } from './components/AiPanel/AiPanel'
 import { useConfigStore } from './store/useConfigStore'
 import { useSplitStore } from './store/useSplitStore'
+import { useSessionStore } from './store/useSessionStore'
 
 export default function App(): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const loadConfig = useConfigStore((s) => s.load)
   const leaves = useSplitStore((s) => s.collectLeaves())
+  const hasRestored = useRef(false)
 
   // ── Init: load config then restore persisted sessions ─────────────────────
   useEffect(() => {
+    // Guard against React Strict Mode double-invoke in dev
+    if (hasRestored.current) return
+    hasRestored.current = true
+
     const init = async (): Promise<void> => {
       await loadConfig()
 
@@ -34,7 +40,8 @@ export default function App(): JSX.Element {
           const { pid } = await window.api.create({
             id: snap.id,
             cwd: snap.lastCwd,
-            histCommands: snap.lastCommands
+            histCommands: snap.lastCommands,
+            proxyId: snap.proxyId
           })
           addSession({
             id: snap.id,
