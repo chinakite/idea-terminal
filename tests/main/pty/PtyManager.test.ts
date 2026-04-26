@@ -1,7 +1,7 @@
 // tests/main/pty/PtyManager.test.ts
 import { describe, it, expect, afterEach } from 'vitest'
 import { PtyManager } from '../../../src/main/pty/PtyManager'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -110,7 +110,6 @@ describe('PtyManager', () => {
   it.skipIf(!isZsh)('.zshrc wrapper contains HISTFILE override and fc -R', () => {
     const zdotDir = join(tmpdir(), 'idea-terminal-zdot-s-zdot3')
     manager.create({ id: 's-zdot3', cwd: process.cwd(), histCommands: ['echo hello'] })
-    const { readFileSync } = require('fs')
     const zshrc = readFileSync(join(zdotDir, '.zshrc'), 'utf-8')
     expect(zshrc).toContain('source "$HOME/.zshrc"')
     expect(zshrc).toContain('HISTFILE="$_IDEA_HISTFILE"')
