@@ -23,6 +23,11 @@ export default function App(): JSX.Element {
     const init = async (): Promise<void> => {
       await loadConfig()
 
+      // Request notification permission once; no-op if already granted or denied
+      if ('Notification' in window) {
+        Notification.requestPermission()
+      }
+
       const snapshots = await window.api.loadSessionSnapshots()
       if (snapshots.length === 0) return
 
