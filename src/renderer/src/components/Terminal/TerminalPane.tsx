@@ -125,10 +125,10 @@ export function TerminalPane({
 
           // Send system notification (only if permission is granted)
           if (Notification.permission !== 'granted') return
-          notificationCooldowns.set(sessionId, now)
           const notification = new Notification('IDEA Terminal', {
             body: `终端「${session.title}」需要您的操作`
           })
+          notificationCooldowns.set(sessionId, Date.now())
           notification.onclick = () => {
             window.focus()
             const leaves = useSplitStore.getState().collectLeaves()
