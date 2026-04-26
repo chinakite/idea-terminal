@@ -413,7 +413,10 @@ if (typeof document !== 'undefined' && !document.getElementById('activity-pulse-
 In `GroupItem`, after the existing store subscriptions block (after `const moveSession = useSessionStore(...)`), add:
 
 ```typescript
-const hasActivity = useActivityStore((s) => s.hasActivity)
+// Subscribe to the reactive unread data object (not the function reference)
+// so the component re-renders on every markActivity/clearActivity call.
+const unread = useActivityStore((s) => s.unread)
+const hasActivity = (sessionId: string): boolean => !!unread[sessionId]
 ```
 
 ---

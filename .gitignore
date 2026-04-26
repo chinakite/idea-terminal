@@ -2,3 +2,9 @@ node_modules
 out
 dist
 .superpowers
+
+# macOS
+.DS_Store
+
+# Claude worktrees
+.claude/worktrees/

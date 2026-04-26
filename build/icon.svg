@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a2744"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e3460"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Terminal window panel -->
+  <rect x="72" y="72" width="880" height="880" rx="80" fill="url(#panel)" opacity="0.9"/>
+
+  <!-- Title bar -->
+  <rect x="72" y="72" width="880" height="110" rx="80" fill="#0f3460"/>
+  <rect x="72" y="122" width="880" height="60" fill="#0f3460"/>
+
+  <!-- Traffic lights -->
+  <circle cx="176" cy="127" r="22" fill="#ff5f56"/>
+  <circle cx="256" cy="127" r="22" fill="#ffbd2e"/>
+  <circle cx="336" cy="127" r="22" fill="#27c93f"/>
+
+  <!-- Chevron > -->
+  <polyline
+    points="296,376 496,512 296,648"
+    stroke="#e94560" stroke-width="72"
+    stroke-linecap="round" stroke-linejoin="round"
+    fill="none"/>
+
+  <!-- Cursor _ -->
+  <line x1="540" y1="656" x2="752" y2="656"
+    stroke="#e94560" stroke-width="64"
+    stroke-linecap="round"/>
+</svg>

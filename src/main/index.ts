@@ -82,6 +82,11 @@ app.on('before-quit', (event) => {
 })
 
 app.on('window-all-closed', () => {
-  ptyManager.destroyAll()
+  // On macOS, keep PTY processes alive after window closes (app stays in dock).
+  // Destroy PTYs on will-quit instead, after before-quit has saved CWDs.
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('will-quit', () => {
+  ptyManager.destroyAll()
 })

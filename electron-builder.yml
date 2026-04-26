@@ -1,0 +1,32 @@
+appId: com.idea-terminal
+productName: IDEA Terminal
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**/*
+  - package.json
+
+# Native modules (.node files) must be unpacked from asar to load at runtime
+asarUnpack:
+  - "**/*.node"
+  - "**/node_modules/node-pty/**"
+
+mac:
+  icon: build/icon.icns
+  category: public.app-category.developer-tools
+  extendInfo:
+    CFBundleName: IDEA Terminal
+    CFBundleDisplayName: IDEA Terminal
+  target:
+    - target: dmg
+
+win:
+  icon: build/icon.ico
+  target: nsis
+
+linux:
+  icon: build/icon.png
+  target: AppImage
