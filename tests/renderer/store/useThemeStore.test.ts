@@ -46,4 +46,18 @@ describe('useThemeStore', () => {
       expect(useThemeStore.getState().themeId).toBe(id)
     }
   })
+
+  it('initializes from valid localStorage value on module load', async () => {
+    localStorageMock['idea-terminal-theme'] = 'dracula'
+    vi.resetModules()
+    const { useThemeStore: freshStore } = await import('../../../src/renderer/src/store/useThemeStore')
+    expect(freshStore.getState().themeId).toBe('dracula')
+  })
+
+  it('falls back to github-dark when localStorage has an unknown theme', async () => {
+    localStorageMock['idea-terminal-theme'] = 'not-a-real-theme'
+    vi.resetModules()
+    const { useThemeStore: freshStore } = await import('../../../src/renderer/src/store/useThemeStore')
+    expect(freshStore.getState().themeId).toBe('github-dark')
+  })
 })
