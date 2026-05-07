@@ -25,8 +25,7 @@ export function SidebarBottomBar(): JSX.Element {
         position: 'relative',
         borderTop: '1px solid #0f3460',
         flexShrink: 0,
-        backgroundColor: '#111827',
-        borderRadius: '0 0 0 0'
+        backgroundColor: '#111827'
       }}
     >
       {/* Popup renders above the bar; position: absolute bottom: 100% */}
