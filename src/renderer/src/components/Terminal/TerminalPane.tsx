@@ -236,7 +236,7 @@ export function TerminalPane({
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%', padding: '4px', backgroundColor: '#0d1117' }}
+      style={{ width: '100%', height: '100%', padding: '4px', backgroundColor: THEMES[themeId].xterm.background }}
     />
   )
 }
