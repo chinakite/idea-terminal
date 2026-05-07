@@ -8,6 +8,8 @@ import { useTerminalOutputStore } from '../../store/useTerminalOutputStore'
 import { useCommandHistoryStore } from '../../store/useCommandHistoryStore'
 import { useActivityStore } from '../../store/useActivityStore'
 import { useSplitStore } from '../../store/useSplitStore'
+import { useThemeStore } from '../../store/useThemeStore'
+import { THEMES } from '../../themes'
 import { scheduleSave } from '../../store/persistSessions'
 import 'xterm/css/xterm.css'
 
@@ -39,6 +41,7 @@ export function TerminalPane({
   const fitAddonRef = useRef<FitAddon | null>(null)
   const cleanupRef = useRef<(() => void)[]>([])
   const markDisconnected = useSessionStore((s) => s.markDisconnected)
+  const themeId = useThemeStore((s) => s.themeId)
 
   /** Keeps isActive current inside the onData closure (avoids stale closure). */
   const isActiveRef = useRef(isActive)
@@ -65,12 +68,7 @@ export function TerminalPane({
       cursorBlink: true,
       fontSize: 14,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#0d1117',
-        foreground: '#cdd9e5',
-        cursor: '#cdd9e5',
-        selectionBackground: '#264f78'
-      }
+      theme: THEMES[useThemeStore.getState().themeId].xterm
     })
 
     const fitAddon = new FitAddon()
@@ -228,6 +226,12 @@ export function TerminalPane({
       return true
     })
   }, [onSplitH, onSplitV, onClose])
+
+  // Hot-update terminal theme when themeId changes
+  useEffect(() => {
+    if (!termRef.current) return
+    termRef.current.options.theme = THEMES[themeId].xterm
+  }, [themeId])
 
   return (
     <div
