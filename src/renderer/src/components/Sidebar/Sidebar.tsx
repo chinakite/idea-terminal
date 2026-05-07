@@ -5,6 +5,7 @@ import { useSplitStore } from '../../store/useSplitStore'
 import { useConfigStore } from '../../store/useConfigStore'
 import { GroupItem } from './GroupItem'
 import { QuickCommands } from './QuickCommands'
+import { SidebarBottomBar } from './SidebarBottomBar'
 import { ProxyForm } from '../Proxy/ProxyForm'
 
 function generateId(): string {
@@ -236,6 +237,7 @@ export function Sidebar(): JSX.Element {
       </div>
 
       <QuickCommands />
+      <SidebarBottomBar />
     </div>
   )
 }
