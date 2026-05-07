@@ -1,6 +1,6 @@
 {
   "name": "idea-terminal",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "An AI terminal manager app",
   "main": "out/main/index.js",
   "author": "chinakite.zhang@gmail.com",
