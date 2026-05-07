@@ -7,6 +7,7 @@ export type ThemeId =
   | 'tokyo-night'
   | 'nord'
   | 'catppuccin'
+  | 'catppuccin-macchiato'
   | 'solarized-light'
 
 export interface ThemeEntry {
@@ -88,6 +89,20 @@ export const THEMES: Record<ThemeId, ThemeEntry> = {
       blue: '#89b4fa',   magenta: '#f5c2e7', cyan: '#94e2d5',   white: '#bac2de',
       brightBlack: '#585b70', brightRed: '#f38ba8', brightGreen: '#a6e3a1', brightYellow: '#f9e2af',
       brightBlue: '#89b4fa', brightMagenta: '#f5c2e7', brightCyan: '#94e2d5', brightWhite: '#a6adc8'
+    }
+  },
+  'catppuccin-macchiato': {
+    name: 'Catppuccin Macchiato',
+    dot: '#24273a',
+    xterm: {
+      background: '#24273a',
+      foreground: '#cad3f5',
+      cursor: '#f4dbd6',
+      selectionBackground: '#363a4f',
+      black: '#494d64',   red: '#ed8796',   green: '#a6da95',   yellow: '#eed49f',
+      blue: '#8aadf4',   magenta: '#f5bde6', cyan: '#8bd5ca',   white: '#b8c0e0',
+      brightBlack: '#5b6078', brightRed: '#ed8796', brightGreen: '#a6da95', brightYellow: '#eed49f',
+      brightBlue: '#8aadf4', brightMagenta: '#f5bde6', brightCyan: '#8bd5ca', brightWhite: '#a5adcb'
     }
   },
   'solarized-light': {

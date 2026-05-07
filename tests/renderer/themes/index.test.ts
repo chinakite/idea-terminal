@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { THEMES, DEFAULT_THEME_ID } from '../../../src/renderer/src/themes/index'
 
-const EXPECTED_IDS = ['github-dark', 'dracula', 'tokyo-night', 'nord', 'catppuccin', 'solarized-light'] as const
+const EXPECTED_IDS = ['github-dark', 'dracula', 'tokyo-night', 'nord', 'catppuccin', 'catppuccin-macchiato', 'solarized-light'] as const
 
 describe('THEMES', () => {
-  it('contains exactly 6 themes', () => {
-    expect(Object.keys(THEMES)).toHaveLength(6)
+  it('contains exactly 7 themes', () => {
+    expect(Object.keys(THEMES)).toHaveLength(7)
   })
 
   it('contains all required theme IDs', () => {
