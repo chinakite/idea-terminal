@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSessionStore } from '../../store/useSessionStore'
 import { useConfigStore } from '../../store/useConfigStore'
 import { useSplitStore } from '../../store/useSplitStore'
+import { useThemeStore } from '../../store/useThemeStore'
+import { THEMES, type ThemeId } from '../../themes'
 
 interface Command {
   id: string
@@ -34,6 +36,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
   const closePane = useSplitStore((s) => s.closePane)
   const assignSession = useSplitStore((s) => s.assignSession)
   const getActivePaneSessionId = useSplitStore((s) => s.getActivePaneSessionId)
+
+  const currentThemeId = useThemeStore((s) => s.themeId)
+  const setTheme = useThemeStore((s) => s.setTheme)
 
   const commands = useMemo((): Command[] => {
     const cmds: Command[] = []
@@ -105,8 +110,21 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
       })
     })
 
+    const themeIds = Object.keys(THEMES) as ThemeId[]
+    themeIds.forEach((id) => {
+      cmds.push({
+        id: `theme-${id}`,
+        label: `切换主题：${THEMES[id].name}`,
+        description: id === currentThemeId ? '当前主题' : undefined,
+        action: () => {
+          setTheme(id)
+          onClose()
+        }
+      })
+    })
+
     return cmds
-  }, [sessions, config.quickCommands, leaves, activePaneId, addSession, splitPane, closePane, assignSession, getActivePaneSessionId, onClose])
+  }, [sessions, config.quickCommands, leaves, activePaneId, addSession, splitPane, closePane, assignSession, getActivePaneSessionId, onClose, currentThemeId, setTheme])
 
   const filtered = commands.filter(
     (c) =>
