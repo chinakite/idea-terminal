@@ -56,7 +56,7 @@ export function TerminalPane({
 
   const handleCopy = useCallback(() => {
     const text = termRef.current?.getSelection() ?? ''
-    if (text) navigator.clipboard.writeText(text)
+    if (text) navigator.clipboard.writeText(text).catch(() => {/* ignore */})
     setContextMenu(null)
   }, [])
 
