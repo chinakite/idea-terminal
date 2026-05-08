@@ -1,5 +1,6 @@
 // src/renderer/src/components/Terminal/TerminalPane.tsx
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
@@ -12,6 +13,7 @@ import { useThemeStore } from '../../store/useThemeStore'
 import { THEMES } from '../../themes'
 import { scheduleSave } from '../../store/persistSessions'
 import 'xterm/css/xterm.css'
+import { TerminalContextMenu } from './TerminalContextMenu'
 
 /** Prevents re-notifying the same session within 30 seconds. */
 const notificationCooldowns = new Map<string, number>()
@@ -42,6 +44,33 @@ export function TerminalPane({
   const cleanupRef = useRef<(() => void)[]>([])
   const markDisconnected = useSessionStore((s) => s.markDisconnected)
   const themeId = useThemeStore((s) => s.themeId)
+
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [hasSelection, setHasSelection] = useState(false)
+
+  const handleContextMenu = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault()
+    setHasSelection((termRef.current?.getSelection() ?? '') !== '')
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
+
+  const handleCopy = useCallback(() => {
+    const text = termRef.current?.getSelection() ?? ''
+    if (text) navigator.clipboard.writeText(text)
+    setContextMenu(null)
+  }, [])
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) window.api.write(sessionId, text)
+    } catch {
+      // clipboard read denied or unavailable — fail silently
+    }
+    setContextMenu(null)
+  }, [sessionId])
+
+  const handleCloseContextMenu = useCallback(() => setContextMenu(null), [])
 
   /** Keeps isActive current inside the onData closure (avoids stale closure). */
   const isActiveRef = useRef(isActive)
@@ -237,6 +266,17 @@ export function TerminalPane({
     <div
       ref={containerRef}
       style={{ width: '100%', height: '100%', padding: '4px', backgroundColor: THEMES[themeId].xterm.background }}
-    />
+      onContextMenu={handleContextMenu}
+    >
+      {contextMenu && (
+        <TerminalContextMenu
+          position={contextMenu}
+          hasSelection={hasSelection}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          onClose={handleCloseContextMenu}
+        />
+      )}
+    </div>
   )
 }
