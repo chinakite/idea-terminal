@@ -1,5 +1,6 @@
 // src/renderer/src/components/Terminal/TerminalContextMenu.tsx
 import { useEffect, useRef } from 'react'
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 
 export interface TerminalContextMenuProps {
   position: { x: number; y: number }
@@ -35,7 +36,7 @@ export function TerminalContextMenu({
   const overflowRight = position.x + menuWidth > window.innerWidth
   const overflowBottom = position.y + menuHeight > window.innerHeight
 
-  const menuStyle: React.CSSProperties = {
+  const menuStyle: CSSProperties = {
     position: 'fixed',
     zIndex: 1000,
     left: overflowRight ? undefined : position.x,
@@ -51,7 +52,7 @@ export function TerminalContextMenu({
     userSelect: 'none'
   }
 
-  const enabledItem: React.CSSProperties = {
+  const enabledItem: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     height: '32px',
@@ -61,7 +62,7 @@ export function TerminalContextMenu({
     fontSize: '13px'
   }
 
-  const disabledItem: React.CSSProperties = {
+  const disabledItem: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     height: '32px',
@@ -71,10 +72,10 @@ export function TerminalContextMenu({
     fontSize: '13px'
   }
 
-  const onHover = (e: React.MouseEvent<HTMLDivElement>): void => {
+  const handleMouseEnter = (e: ReactMouseEvent<HTMLDivElement>): void => {
     e.currentTarget.style.backgroundColor = '#264f78'
   }
-  const onLeave = (e: React.MouseEvent<HTMLDivElement>): void => {
+  const handleMouseLeave = (e: ReactMouseEvent<HTMLDivElement>): void => {
     e.currentTarget.style.backgroundColor = ''
   }
 
@@ -83,16 +84,16 @@ export function TerminalContextMenu({
       <div
         style={hasSelection ? enabledItem : disabledItem}
         onClick={hasSelection ? onCopy : undefined}
-        onMouseEnter={hasSelection ? onHover : undefined}
-        onMouseLeave={hasSelection ? onLeave : undefined}
+        onMouseEnter={hasSelection ? handleMouseEnter : undefined}
+        onMouseLeave={hasSelection ? handleMouseLeave : undefined}
       >
         复制
       </div>
       <div
         style={enabledItem}
         onClick={onPaste}
-        onMouseEnter={onHover}
-        onMouseLeave={onLeave}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         粘贴
       </div>

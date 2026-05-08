@@ -96,4 +96,38 @@ describe('TerminalContextMenu', () => {
     fireEvent.mouseDown(document.body)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('does not call onClose when mousedown fires inside the menu', () => {
+    const onClose = vi.fn()
+    const { getByText } = render(
+      <TerminalContextMenu
+        position={position}
+        hasSelection={true}
+        onCopy={vi.fn()}
+        onPaste={vi.fn()}
+        onClose={onClose}
+      />
+    )
+    // Click inside the menu (on a menu item)
+    fireEvent.mouseDown(getByText('复制'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('flips to right side when menu would overflow right edge', () => {
+    // position.x + menuWidth (160) > window.innerWidth (1024 in jsdom) triggers flip
+    const overflowPosition = { x: 950, y: 100 }
+    const { container } = render(
+      <TerminalContextMenu
+        position={overflowPosition}
+        hasSelection={false}
+        onCopy={vi.fn()}
+        onPaste={vi.fn()}
+        onClose={vi.fn()}
+      />
+    )
+    const menu = container.firstChild as HTMLElement
+    // When overflowing right, left should be unset and right should be set
+    expect(menu.style.left).toBe('')
+    expect(menu.style.right).toBe(`${window.innerWidth - overflowPosition.x}px`)
+  })
 })
